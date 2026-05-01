@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+pydantic
+sqlalchemy
+-e ./packages/domain

@@ -1,0 +1,12 @@
+[project]
+name = "poker-ai"
+version = "0.1.0"
+description = "Clean Architecture Poker AI"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+]
+
+[tool.setuptools]
+packages = ["apps", "packages"]
