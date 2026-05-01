@@ -1,0 +1,9 @@
+
+### Module-wise Architecture
+1. **Game Engine** – Manages players, stack sizes, blinds, pot, side pots, and rounds.
+2. **Action Tracker** – Validates and records every action (bet, raise, fold, etc.) using an event-sourcing model.
+3. **Probability Engine** – Calculates winning percentages via Monte Carlo simulations.
+4. **AI Engine** – Serves opponent classification, bluff detection, and move recommendations.
+5. **Hand History Analyzer** – Stores completed hands and computes aggregated player statistics.
+
+### Data Flow
