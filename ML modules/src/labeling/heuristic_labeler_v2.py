@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from analyze_distributions import get_hand_strength
+from src.features.analyze_distributions import get_hand_strength
+from src.utils.config_loader import get_data_path
 import logging
 import os
 
@@ -9,13 +10,19 @@ logger = logging.getLogger(__name__)
 
 def generate_labels_v2():
     logger.info("Loading v2 features...")
-    df = pd.read_parquet('parsed_output/features_v2.parquet')
+    features_v2_path = get_data_path('features_v2')
+    if not os.path.exists(features_v2_path):
+        logger.error(f"Features not found at {features_v2_path}")
+        return
+    df = pd.read_parquet(features_v2_path)
     
-    # 1. Load Mismatch Surface
+    # 1. Load Mismatch Surface (if exists in interim or processed)
+    # This might need to be moved to config too if it's an artifact
+    surface_path = 'data/interim/mismatch_surface_v1.csv'
     try:
-        surface = pd.read_csv('parsed_output/mismatch_surface_v1.csv').set_index('street')
+        surface = pd.read_csv(surface_path).set_index('street')
     except:
-        logger.warning("Mismatch surface not found, using defaults.")
+        logger.warning(f"Mismatch surface not found at {surface_path}, using defaults.")
         surface = pd.DataFrame()
     
     logger.info("Generating high-precision soft labels...")
@@ -36,21 +43,10 @@ def generate_labels_v2():
     df['baseline_p'] = df.apply(get_baseline_p, axis=1)
     
     # Adjustments for Precision
-    # 1. Dryness: Increase bluff prob on dry boards (+15%)
     df['dryness_adj'] = (df['dryness'] - 0.5) * 0.3
-    
-    # 2. Bet Spike: Large spikes are suspicious (+15%)
     df['spike_adj'] = np.where(df['bet_spike'] > 2.5, 0.15, 0.0)
-    
-    # 3. Narrative Break: Non-monotonic lines (+10%)
     df['narrative_adj'] = np.where(df['is_monotonic'] == 0, 0.1, -0.05)
-    
-    # 4. Range Miss: High range miss = high bluff probability
-    # range_miss was calculated in feature eng. We'll use it as a multiplier or addition.
     df['range_miss_adj'] = (df['range_miss'] - df['range_miss'].mean()) * 0.2
-    
-    # 5. Opponent Profile: Loose-Aggressive (LAG) players bluff more
-    # agg_profile = vpip / pfr. High agg_profile (> 1.5) means passive. Low (< 1.2) means aggressive.
     df['opp_adj'] = np.where(df['agg_profile'] < 1.2, 0.05, -0.05)
     
     # Calculate Soft Label
@@ -70,7 +66,7 @@ def generate_labels_v2():
     df['confidence_weight'] = 0.2 # Lower base confidence for heuristics
     df.loc[mask, 'confidence_weight'] = 1.0 # High confidence for showdown
     
-    output_path = 'parsed_output/labeled_dataset_v2.parquet'
+    output_path = get_data_path('labels_v2')
     df.to_parquet(output_path)
     logger.info(f"Saved {len(df)} labeled records to {output_path}")
     

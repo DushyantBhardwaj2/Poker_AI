@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from analyze_dryness import calculate_dryness
+from src.features.analyze_dryness import calculate_dryness
+from src.utils.config_loader import get_data_path
 import logging
 import os
 
@@ -9,16 +10,17 @@ logger = logging.getLogger(__name__)
 
 def engineer_features_v2():
     logger.info("Loading aggressive data...")
-    # Use aggressive output if available, else fallback
-    agg_path = 'parsed_output/parsed_hands_aggressive.parquet'
-    if os.path.exists(agg_path):
-        actions_df = pd.read_parquet(agg_path)
-        player_stats_df = pd.read_parquet('parsed_output/player_stats_aggressive.parquet')
+    parsed_agg_path = get_data_path('parsed_aggressive')
+    player_stats_agg_path = get_data_path('player_stats_aggressive')
+    
+    if os.path.exists(parsed_agg_path):
+        actions_df = pd.read_parquet(parsed_agg_path)
+        player_stats_df = pd.read_parquet(player_stats_agg_path)
         logger.info(f"Loaded {len(actions_df)} aggressive actions.")
     else:
-        logger.warning("Aggressive data not found. Falling back to full dataset.")
-        actions_df = pd.read_parquet('parsed_output/parsed_hands_full.parquet')
-        player_stats_df = pd.read_parquet('parsed_output/player_stats.parquet')
+        logger.warning(f"Aggressive data not found at {parsed_agg_path}. Falling back to full dataset.")
+        actions_df = pd.read_parquet(get_data_path('parsed_full'))
+        player_stats_df = pd.read_parquet(get_data_path('player_stats_full'))
 
     # 1. Join Player Stats
     logger.info("Joining player stats...")
@@ -94,7 +96,7 @@ def engineer_features_v2():
     
     final_df = df[feature_cols]
     
-    output_path = 'parsed_output/features_v2.parquet'
+    output_path = get_data_path('features_v2')
     final_df.to_parquet(output_path)
     logger.info(f"Saved {len(final_df)} records with v2 features to {output_path}")
     
