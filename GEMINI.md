@@ -49,7 +49,7 @@ To provide a high-speed, minimalist "poker sidekick" that:
 
 | Layer | Technology |
 |------|------------|
-| Frontend | Astro (React Islands) / TypeScript |
+| Frontend | React.js / Next.js (TypeScript) |
 | Styling | Tailwind CSS |
 | Backend | FastAPI (Python) |
 | Database | SQLite (SQLAlchemy) |
@@ -64,7 +64,6 @@ To provide a high-speed, minimalist "poker sidekick" that:
 - `CardInputView`: Handles card selection for hole and community cards.
 - `ActionTracker`: The main vertical list of player status and action buttons.
 - `AIDashboard`: Real-time analysis panel.
-- `PokerTable`: Main orchestrator component (Astro + React).
 
 ### Data Flow
 1. User inputs setup/cards/actions in the UI.
@@ -83,25 +82,9 @@ To provide a high-speed, minimalist "poker sidekick" that:
 - [x] Phase 3: AI Advisor (Win Prob, EV, Opponent Profiling)
 - [x] Phase 4: Initial Frontend Integration
 - [x] Phase 5: Persistent Hand History & Stats
-- [x] **Frontend Migration**: Ported from Next.js to Astro for improved performance and minimalism.
 
 ### Current Focus
-- [x] **Phase 6: Premium Frontend Redesign** ✅
-  - [x] Design system implementation (charcoal/gold theme, glass-morphism)
-  - [x] Typography upgrade (Playfair Display + Inter)
-  - [x] Custom animations and effects
-  - [x] Resolved CSS compilation issues (Tailwind v4 compatibility)
-  - [x] Verified full user flow with new aesthetic
-- [ ] **Bluff Probability Engine**: Implement advanced logic for bluff detection based on bet sizes and opponent profiles.
-- [ ] **Session Exports**: Allow users to export hand histories for post-game study.
-
----
-
-## 6. Bluff Detection Methodology (Imperfect Information Modeling)
-
-The AI detects bluffs not by seeing hidden cards, but by identifying **Behavioral Inconsistencies**:
-
-1.  **Narrative vs. Board Texture**: Compares bet sizing to community cards. A massive bet on a "dry" board (unconnected cards) often signals a narrative mismatch.
-2.  **Relative Frequency (VPIP/PFR)**: Uses historical stats (tracked in the local DB) to calculate "Range Density." If a player plays 70% of hands, they mathematically cannot have a premium hand every time they raise.
-3.  **Pattern Recognition (Training vs. Inference)**: The model is trained on datasets where cards *were* revealed (like IRC logs) to learn the "shape" of a bluff. In live play, it recognizes these shapes without needing to see the cards.
-4.  **Range Analysis**: Calculates the probability across all 1,326 possible hole card combinations to determine if a bet is more likely to be "Air" (nothing) or "Value" (strong).
+- [ ] **Frontend Redesign:** Pivot from graphical simulation to minimalist Turn-Based Tracker UI.
+- [ ] **Bluff Probability Engine:** Implement advanced logic for bluff detection based on bet sizes and opponent profiles.
+- [ ] **Session Exports:** Allow users to export hand histories for post-game study.
+   
