@@ -1,0 +1,12 @@
+# Raw datasets
+/poker-hand-histories/
+/poker-hand-histories.zip
+
+# Generated artifacts
+/parsed_output/
+*.parquet
+*.joblib
+*.png
+*.csv
+*.log
+__pycache__/
