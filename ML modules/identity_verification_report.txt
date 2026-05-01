@@ -1,0 +1,42 @@
+
+======================================================================
+CROSS-FILE IDENTITY VERIFICATION REPORT
+======================================================================
+
+Total unique players found: 32
+Total files processed: 20
+Parse errors: 0
+Players in multiple files: 15
+
+----------------------------------------------------------------------
+BREAKDOWN BY SOURCE:
+----------------------------------------------------------------------
+
+Pluribus:
+  Unique players: 14
+  Players in multiple files: 14
+  Sample players: Bill, Budd, Eddie, Gogo, Hattori
+
+data:
+  Unique players: 18
+  Players in multiple files: 1
+  Sample players: Alice, Bob, Bryce Yockey, Carol, Jason Koon
+
+----------------------------------------------------------------------
+TOP 10 RECURRING PLAYERS (Most Files):
+----------------------------------------------------------------------
+  Pluribus: 15 files
+  MrBlue: 15 files
+  MrOrange: 15 files
+  Bill: 13 files
+  Hattori: 11 files
+  ORen: 11 files
+  MrBlonde: 8 files
+  MrPink: 6 files
+  MrWhite: 6 files
+  Eddie: 6 files
+
+======================================================================
+[PASS] Player identities are consistent across multiple files.
+   This confirms that lifetime statistics (VPIP/PFR) calculation is valid.
+======================================================================
