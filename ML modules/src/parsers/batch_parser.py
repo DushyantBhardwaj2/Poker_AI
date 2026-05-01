@@ -18,7 +18,8 @@ from datetime import datetime
 import time
 
 # Import the parser from data_loader
-from data_loader import PHHParser, load_phh_files
+from src.parsers.data_loader import PHHParser, load_phh_files
+from src.utils.config_loader import load_config, get_data_path
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,10 +31,12 @@ logger = logging.getLogger(__name__)
 class BatchParsingOrchestrator:
     """Orchestrates batch parsing of PHH files."""
     
-    def __init__(self, output_dir: str = "./parsed_output"):
+    def __init__(self, output_dir: str = None):
         """Initialize the orchestrator."""
+        if output_dir is None:
+             output_dir = os.path.dirname(get_data_path('parsed_full'))
         self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         
         self.start_time = None
         self.end_time = None
@@ -43,7 +46,7 @@ class BatchParsingOrchestrator:
         self.total_hands = 0
         self.total_records = 0
     
-    def parse_sample_files(self, sample_list_file: str = "sample_files.py") -> pd.DataFrame:
+    def parse_sample_files(self, sample_list_file: str = "configs/sample_files.py") -> pd.DataFrame:
         """
         Parse all files in the sample list.
         
@@ -312,7 +315,7 @@ def main():
     orchestrator = BatchParsingOrchestrator()
     
     # Parse sample files
-    df = orchestrator.parse_sample_files("sample_files.py")
+    df = orchestrator.parse_sample_files("configs/sample_files.py")
     
     if df.empty:
         logger.error("No data parsed!")

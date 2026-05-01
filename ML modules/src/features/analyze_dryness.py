@@ -2,9 +2,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from analyze_distributions import get_hand_strength
+from src.features.analyze_distributions import get_hand_strength
+from src.utils.config_loader import get_data_path
 from pokerkit import Card
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -70,7 +72,11 @@ def calculate_dryness(board_cards):
 
 def main():
     logger.info("Loading data and calculating dryness...")
-    df = pd.read_parquet('parsed_output/parsed_hands_full.parquet')
+    parsed_full_path = get_data_path('parsed_full')
+    if not os.path.exists(parsed_full_path):
+        logger.error(f"Data not found at {parsed_full_path}")
+        return
+    df = pd.read_parquet(parsed_full_path)
     
     # Analyze post-flop records
     postflop_df = df[df['street'] > 0].copy()
@@ -106,7 +112,9 @@ def main():
     plt.figure(figsize=(10, 6))
     sns.heatmap(interaction, annot=True, cmap='YlOrRd')
     plt.title('P(Weak Hand | Dryness, Bet Size)')
-    plt.savefig('parsed_output/dryness_bet_interaction.png')
+    output_png = os.path.join(os.path.dirname(parsed_full_path), 'dryness_bet_interaction.png')
+    plt.savefig(output_png)
+    logger.info(f"Interaction plot saved to {output_png}")
 
 if __name__ == "__main__":
     main()

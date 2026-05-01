@@ -6,19 +6,29 @@ from sklearn.metrics import mean_squared_error, r2_score, precision_recall_fscor
 import joblib
 import logging
 import matplotlib.pyplot as plt
+import os
+from src.utils.config_loader import load_config, get_data_path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def train_model_v2():
     logger.info("Loading labeled dataset v2...")
-    # We will use the aggressive dataset if it exists, otherwise fallback to v1
-    import os
-    if os.path.exists('parsed_output/labeled_dataset_v2.parquet'):
-        df = pd.read_parquet('parsed_output/labeled_dataset_v2.parquet')
+    config = load_config()
+    labels_v2_path = get_data_path('labels_v2')
+    
+    if os.path.exists(labels_v2_path):
+        df = pd.read_parquet(labels_v2_path)
     else:
-        logger.warning("labeled_dataset_v2.parquet not found. Using v1.")
-        df = pd.read_parquet('parsed_output/labeled_dataset_v1.parquet')
+        # Fallback to features_v2 if labels not yet created (heuristics)
+        logger.warning(f"labeled_dataset_v2.parquet not found at {labels_v2_path}. Checking features_v2.")
+        features_path = get_data_path('features_v2')
+        if os.path.exists(features_path):
+             df = pd.read_parquet(features_path)
+             # Note: Heuristic labels should be added before training
+        else:
+            logger.error("No dataset found for training.")
+            return
     
     # Define features and target
     features = [
@@ -32,9 +42,14 @@ def train_model_v2():
     target = 'soft_label'
     weight = 'confidence_weight'
     
+    # Check if target exists
+    if target not in df.columns:
+        logger.error(f"Target column {target} not found. Run heuristic labeler first.")
+        return
+
     X = df[features]
     y = df[target]
-    w = df[weight]
+    w = df[weight] if weight in df.columns else np.ones(len(df))
     groups = df['player_id']
     
     logger.info("Cleaning inf and nan values...")
@@ -48,22 +63,24 @@ def train_model_v2():
     
     best_models = []
     
+    # Model Params from config
+    model_params = config.get('model', {}).get('params', {
+        'n_estimators': 1000,
+        'learning_rate': 0.01,
+        'max_depth': 10,
+        'subsample': 0.8,
+        'colsample_bytree': 0.8,
+        'tree_method': 'hist',
+        'n_jobs': -1,
+        'random_state': 42
+    })
+    
     for fold, (train_idx, val_idx) in enumerate(gkf.split(X, y, groups), 1):
         X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
         y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
         w_train, w_val = w.iloc[train_idx], w.iloc[val_idx]
         
-        # High Depth, Low Learning Rate
-        model = xgb.XGBRegressor(
-            n_estimators=1000,
-            learning_rate=0.01,
-            max_depth=10,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            tree_method='hist', # Faster
-            n_jobs=-1,
-            random_state=42
-        )
+        model = xgb.XGBRegressor(**model_params)
         
         model.fit(
             X_train, y_train, 
@@ -76,25 +93,18 @@ def train_model_v2():
         best_models.append(model)
         
     # Final model on full data
-    final_model = xgb.XGBRegressor(
-        n_estimators=1000,
-        learning_rate=0.01,
-        max_depth=10,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        tree_method='hist',
-        n_jobs=-1,
-        random_state=42
-    )
+    final_model = xgb.XGBRegressor(**model_params)
     final_model.fit(X, y, sample_weight=w)
     
     # Save model
-    model_path = 'parsed_output/bluff_detector_v2.joblib'
-    joblib.dump(final_model, model_path)
-    logger.info(f"Model saved to {model_path}")
+    model_output_path = config['training']['model_output']
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(model_output_path), exist_ok=True)
+    joblib.dump(final_model, model_output_path)
+    logger.info(f"Model saved to {model_output_path}")
     
     # Precision-Recall Optimization on Showdown Data
-    showdown_mask = df['true_label'].notna()
+    showdown_mask = df['true_label'].notna() if 'true_label' in df.columns else pd.Series([False]*len(df))
     if showdown_mask.any():
         X_test = df.loc[showdown_mask, features]
         X_test = X_test.replace([np.inf, -np.inf], np.nan).fillna(0)
@@ -106,9 +116,7 @@ def train_model_v2():
         precision, recall, thresholds = precision_recall_curve(y_true, y_prob)
         
         # Find threshold for > 70% precision if possible
-        # Note: precision and recall are size N+1, thresholds is size N.
-        # The last precision value is 1.0 and has no corresponding threshold.
-        target_precision = 0.70
+        target_precision = config['training'].get('target_precision', 0.70)
         idx = np.where(precision[:-1] >= target_precision)[0]
         if len(idx) > 0:
             best_threshold = thresholds[idx[0]]

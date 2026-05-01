@@ -83,5 +83,6 @@ pytest_cache/
 *.local
 
 # ML hand-history dataset
+ML modules/data/
 ML modules/poker-hand-histories/
 ML modules/poker-hand-histories.zip

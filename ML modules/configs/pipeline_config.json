@@ -1,0 +1,22 @@
+{
+    "paths": {
+        "raw_data": "data/raw",
+        "interim_data": "data/interim",
+        "processed_data": "data/processed",
+        "models": "src/models",
+        "configs": "configs"
+    },
+    "data": {
+        "raw_hand_histories": "data/raw/poker-hand-histories",
+        "parsed_full": "data/interim/parsed_hands_full.parquet",
+        "parsed_aggressive": "data/interim/parsed_hands_aggressive.parquet",
+        "player_stats_full": "data/interim/player_stats.parquet",
+        "player_stats_aggressive": "data/interim/player_stats_aggressive.parquet",
+        "features_v2": "data/interim/features_v2.parquet",
+        "labels_v2": "data/interim/labeled_dataset_v2.parquet"
+    },
+    "training": {
+        "model_output": "src/models/bluff_detector_v2.joblib",
+        "target_precision": 0.70
+    }
+}
