@@ -45,9 +45,16 @@ def get_hand_strength(row):
             get_hand_strength.count += 1
     return None
 
+from src.utils.config_loader import get_data_path
+
 def main():
     logger.info("Loading parsed data...")
-    df = pd.read_parquet('parsed_output/parsed_hands_full.parquet')
+    parsed_full_path = get_data_path('parsed_full')
+    if not parsed_full_path or not os.path.exists(parsed_full_path):
+        logger.error(f"Parsed data not found at {parsed_full_path}")
+        return
+        
+    df = pd.read_parquet(parsed_full_path)
     
     # Calculate relative bet size
     df['rel_bet_size'] = df['bet_amount'] / df['pot_before']

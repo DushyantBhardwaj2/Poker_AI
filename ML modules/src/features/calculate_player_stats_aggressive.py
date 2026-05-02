@@ -11,19 +11,42 @@ import time
 from collections import defaultdict
 import random
 import re
+import os
+
+# Absolute imports
+from src.utils.config_loader import get_data_path
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class AggressiveStatCollector:
-    def __init__(self, data_dir: str = "./poker-hand-histories/data/handhq", limit=2000):
-        self.data_dir = Path(data_dir)
+    def __init__(self, limit=2000):
+        # Use config loader for paths
+        raw_base = get_data_path("raw_hand_histories")
+        if not raw_base:
+            raw_base = "data/raw/poker-hand-histories"
+            
+        self.data_dir = Path(raw_base) / "data/handhq"
+        
+        output_path = get_data_path("player_stats_aggressive")
+        if not output_path:
+            output_path = "data/interim/player_stats_aggressive.parquet"
+            
+        self.output_path = Path(output_path)
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        
         self.limit = limit
         self.stats = defaultdict(lambda: {"hands": 0, "vpip_count": 0, "pfr_count": 0})
 
     def process_files(self):
         logger.info(f"Scanning for .phhs files in {self.data_dir}...")
+        if not self.data_dir.exists():
+            logger.error(f"Data directory {self.data_dir} does not exist.")
+            return None
+            
         all_files = list(self.data_dir.rglob("*.phhs"))
+        logger.info(f"Found {len(all_files)} files.")
+        
         if len(all_files) > self.limit:
             random.seed(42)
             all_files = random.sample(all_files, self.limit)
@@ -57,7 +80,7 @@ class AggressiveStatCollector:
             if idx % 100 == 0 or idx == total_files:
                 elapsed = time.time() - start_time
                 rate = idx / elapsed
-                eta = (total_files - idx) / rate
+                eta = (total_files - idx) / rate if rate > 0 else 0
                 logger.info(f"[{idx}/{total_files}] Players: {len(self.stats)} | ETA: {eta:.0f}s")
 
     def _process_hand(self, hand):
@@ -94,7 +117,7 @@ class AggressiveStatCollector:
         for p in pfr_players:
             self.stats[p]["pfr_count"] += 1
 
-    def save_stats(self, output_path: str = "parsed_output/player_stats_aggressive.parquet"):
+    def save_stats(self):
         data = []
         for p, s in self.stats.items():
             if s["hands"] >= 5: # Minimum 5 hands for a profile
@@ -105,12 +128,21 @@ class AggressiveStatCollector:
                     "pfr": s["pfr_count"] / s["hands"]
                 })
         
+        if not data:
+            logger.warning("No player stats collected (with >= 5 hands).")
+            return None
+            
         df = pd.DataFrame(data)
-        df.to_parquet(output_path)
-        logger.info(f"Saved stats for {len(df)} players to {output_path}")
+        df.to_parquet(self.output_path)
+        logger.info(f"Saved stats for {len(df)} players to {self.output_path}")
         return df
 
-if __name__ == "__main__":
-    collector = AggressiveStatCollector(limit=50)
+def run_profiling(limit=2000):
+    """Entry point for the pipeline."""
+    collector = AggressiveStatCollector(limit=limit)
     collector.process_files()
-    collector.save_stats()
+    return collector.save_stats()
+
+if __name__ == "__main__":
+    # For standalone testing
+    run_profiling(limit=50)

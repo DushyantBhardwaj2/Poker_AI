@@ -450,4 +450,42 @@
 - [x] **Model Training v2:** Scaled to XGBoost max_depth=10 with PR-curve optimization.
 - [x] **Threshold Optimization:** Max precision achieved: 0.364 (Baseline on small showdown sample); currently scaling to improve this.
 
-**Status:** ? Expansion Phase Complete; Refinement Phase In-Progress.
+**Status:** ✅ Expansion Phase Complete; Refinement Phase In-Progress.
+
+## 📅 Session: May 2, 2026
+**Focus:** Phase A - Pipeline Consolidation & Architectural Hardening
+
+### 🚀 Progress Log
+
+#### ✅ Task A.1: Pipeline Integration (COMPLETED)
+*   **Action:** Refactored `run_pipeline.py` to include `ingest` and `profile` steps.
+*   **Outcome:** The ML pipeline is now a single, unified entry point for the entire lifecycle.
+*   **Technical Note:** Integrated `AggressiveParser` and `AggressiveStatCollector` as modular steps.
+
+#### ✅ Task A.2: Configuration Standardization (COMPLETED)
+*   **Action:** Enforced `config_loader` across all core modules.
+*   **Outcome:** Removed hardcoded path leakage. All file paths are now managed via `configs/pipeline_config.json`.
+*   **Modules Updated:** `aggressive_parser.py`, `calculate_player_stats_aggressive.py`, `validate_labels.py`, `analyze_distributions.py`, `boundary_extraction.py`.
+
+#### ✅ Task A.3: Dependency Gating (COMPLETED)
+*   **Action:** Implemented a "Dry Run" dependency checker in `run_pipeline.py`.
+*   **Outcome:** The pipeline now validates the existence of all input dependencies before starting execution, preventing mid-run failures.
+*   **Feature:** Added `--dry-run` and `--limit` CLI arguments to the pipeline orchestrator.
+
+#### ✅ Task B.1: Pipeline Validation Gate (COMPLETED)
+*   **Action:** Integrated `validate_data_quality.py` into `run_pipeline.py`.
+*   **Outcome:** The pipeline now automatically validates data quality after ingestion and aborts if critical checks (pot monotonicity, street transitions) fail.
+*   **Artifact:** Automated validation reports saved to `data/interim/`.
+
+#### ✅ Task B.2: Dynamic Mismatch Surface (COMPLETED)
+*   **Action:** Created `src/preprocessing/generate_mismatch_surface.py` and integrated it into `run_pipeline.py`.
+*   **Outcome:** The system now dynamically analyzes showdown data to generate a probability matrix (Dryness x Bet Size -> P(Weak)).
+*   **Technical Note:** Restored dataset to 73,758 records by increasing file limit. Fixed a bug where bare `except` clauses and infrequent logging caused the shell to appear "hung" during large parses.
+*   **Insight:** Probability of weak hands on Dry boards (~33%) is double that of Wet boards (~13%), providing strong empirical grounding for the heuristic engine.
+
+### 💡 Core Decisions
+1. **Centralized Path Management:** Moved all data references to `pipeline_config.json` to support multi-environment portability.
+2. **Modular Profiling:** Separated profiling from ingestion to allow for different sampling rates (e.g., profiling 100k hands for stats while training on 10k).
+3. **Fail-Fast Design:** The dependency checker ensures that if a user skips a step (like `labeling`), the `train` step will abort immediately with a clear error message.
+
+**Status:** ✅ Phase A Complete; Moving to Phase B (Quality & Calibration).
