@@ -2,15 +2,23 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from analyze_distributions import get_hand_strength
 import logging
+import os
+
+from src.features.analyze_distributions import get_hand_strength
+from src.utils.config_loader import get_data_path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def main():
     logger.info("Loading and processing data...")
-    df = pd.read_parquet('parsed_output/parsed_hands_full.parquet')
+    parsed_full_path = get_data_path('parsed_full')
+    if not parsed_full_path or not os.path.exists(parsed_full_path):
+        logger.error(f"Parsed data not found at {parsed_full_path}")
+        return
+        
+    df = pd.read_parquet(parsed_full_path)
     df['rel_bet_size'] = df['bet_amount'] / df['pot_before']
     
     postflop_df = df[df['street'] > 0].copy()

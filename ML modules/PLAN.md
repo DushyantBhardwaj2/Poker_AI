@@ -1,110 +1,111 @@
-# PokerSense ML — Dynamic Execution Plan (v2.1)
+# 🤖 PokerSense ML — Refined Execution Plan (v3.0)
 
-This is a **production-grade execution system**. It is designed to be executed step-by-step by an AI agent, dynamically expand as complexity is uncovered, and maintain strict synchronization with `DEVELOPMENT_LOG.md`.
+## 1. EXECUTIVE SUMMARY
+PokerSense ML is the **behavioral intelligence engine** of the PokerSense AI project. It specializes in **Bluff Detection** by analyzing inconsistencies between betting narratives, board textures, and player historical profiles.
+
+**Current Stage:** The system has successfully transitioned from experimental scripts to a modular directory structure. Core logic for features, labeling, and models is implemented. We are currently in the **Pipeline Integration Phase**, focusing on unifying disparate steps into a single, automated execution flow to ensure reproducibility and high-precision results (>70%).
 
 ---
 
-## 🔄 System Rules & Workflows
+## 2. SYSTEM ARCHITECTURE
+
+The ML system operates as an independent engine that consumes raw Hand Histories (PHH) and produces a serialized XGBoost model for the `apps/api` layer.
+
+### Data Flow Overview (Textual)
+`Raw PHH (Zenodo/HandHQ)` ➡️ **[Ingestion]** ➡️ `Parsed Actions (Parquet)` ⬅️ **[Profiling]** ⬅️ `Player Stats (VPIP/PFR)` ➡️ **[Features]** ➡️ `Feature Matrix (Temporal/Interactive)` ➡️ **[Labeling]** ➡️ `Heuristic Soft Labels + Confidence` ➡️ **[Training]** ➡️ `XGBoost Regressor` ➡️ **[Evaluation]** ➡️ `PR-Calibrated Model`.
+
+---
+
+## 3. PIPELINE DESIGN (STRICT ORDER)
+
+The pipeline is managed via `pipeline/run_pipeline.py` and driven by `configs/pipeline_config.json`.
+
+| Step | Module | Purpose | Input ➡️ Output |
+| :--- | :--- | :--- | :--- |
+| **1. Ingestion** | `parsers/` | Recursive discovery and NLHE filtering. | `*.phh/*.phhs` ➡️ `parsed_hands_full.parquet` |
+| **2. Profiling** | `features/` | Calculate lifetime VPIP/PFR/Aggression. | `parsed_hands_full` ➡️ `player_stats.parquet` |
+| **3. Features** | `features/` | Narrative, Texture, and Interaction terms. | `parsed_hands` + `stats` ➡️ `features_v2.parquet` |
+| **4. Labeling** | `labeling/` | Probabilistic Weak Supervision (Heuristics). | `features_v2` ➡️ `labeled_dataset_v2.parquet` |
+| **5. Training** | `models/` | XGBoost training with confidence weights. | `labeled_dataset_v2` ➡️ `bluff_detector_v2.joblib` |
+| **6. Evaluation**| `evaluation/`| PR-Curve calibration on showdown data. | `detector_v2` + `showdown` ➡️ `Performance Report` |
+| **7. Inference** | `interfaces/`| Expose prediction as a lightweight service. | `Game State` ➡️ `Bluff Probability (%)` |
+
+---
+
+## 4. MODULE STRUCTURE
+
+*   **`preprocessing/`**: Handles data cleaning, stratified sampling, and identity verification.
+*   **`parsers/`**: Core ingestion logic using `pokerkit`. Translates diverse PHH dialects into a unified schema.
+*   **`features/`**: Domain-specific logic (Board Dryness, SPR, Bet Spikes, Narrative Monotonicity).
+*   **`labeling/`**: The "Heuristic Engine". Assigns soft labels (0-1) based on mismatch between action and hand range probability.
+*   **`models/`**: Wrapper for XGBoost. Handles hyper-parameters and experiment tracking via JSON logs.
+*   **`evaluation/`**: Statistical validation. Anchors the heuristic logic to real-world showdown outcomes.
+*   **`pipeline/`**: The orchestrator. Ensures correct step sequencing and path management.
+
+---
+
+## 5. CURRENT STATUS VS PLAN
+
+| Task | Category | Planned Status | Actual Status | Note |
+| :--- | :--- | :--- | :--- | :--- |
+| **Phase 0** | Infrastructure | `done` | `done` | Modular structure and config loader implemented. |
+| **Phase 1** | Ingestion | `done` | `done` | Integrated into `run_pipeline.py`. |
+| **Phase 2** | Features | `done` | `done` | v2 features (SPR, Interaction terms) implemented. |
+| **Phase 3** | Labeling | `done` | `done` | Heuristic engine v2 implemented with soft-labels. |
+| **Phase 4** | Evaluation | `done` | `done` | Integrated into pipeline and model training. |
+| **Phase 5** | Training | `in-progress` | `in-progress` | Training on 74k records; Precision optimization pending. |
+| **Phase 6** | Inference | `pending` | `pending` | Blocked by Phase 5 completion. |
+
+---
+
+## 6. IDENTIFIED GAPS (CRITICAL)
+
+1.  **Pipeline Fragmentation:** Steps 1 (Ingestion) and 2 (Profiling) are currently manual scripts (`aggressive_parser.py`, `calculate_player_stats.py`) and not part of the main `run_pipeline.py` flow.
+2.  **Hardcoded Path Leakage:** Some scripts still use relative strings (e.g., `"./data/raw"`) instead of the centralized `config_loader`.
+3.  **Missing Automated Gating:** The pipeline continues even if Data Quality checks (Phase 4.2) fail.
+4.  **Static Mismatch Surface:** The heuristic labeler relies on a manual `mismatch_surface_v1.csv` which should be dynamically generated from the current dataset's showdown distributions.
+
+---
+
+## 7. REFINED ROADMAP (ACTIONABLE)
+
+### Phase A: Pipeline Consolidation (Short-term)
+*   [x] **A.1:** Refactor `run_pipeline.py` to include `ingest` and `profile` steps.
+*   [x] **A.2:** Enforce `config_loader` across all modules to eliminate hardcoded paths.
+*   [x] **A.3:** Implement a "Dry Run" check that verifies all input file dependencies before execution.
+
+### Phase B: Quality & Calibration (Mid-term)
+*   [x] **B.1:** Integrate `validate_data_quality.py` as a mandatory gate after Ingestion.
+*   [x] **B.2:** Automate the "Joint Distribution Analysis" to generate the `mismatch_surface` dynamically before Labeling.
+*   [ ] **B.3:** Scale `AggressiveParser` to 200k+ records to maximize behavioral depth.
+
+### Phase C: Model Optimization & Delivery (Final)
+*   [ ] **C.1:** Execute full PR-curve calibration to hit the **>70% Precision** target for "Strict Bluffs".
+*   [ ] **C.2:** Create the `inference_api.py` wrapper.
+*   [ ] **C.3:** Archive all legacy "v1" scripts into the `archive/` folder to clean the codebase.
+
+---
+
+## 8. SAFE IMPROVEMENTS (NO DEVIATION)
+
+*   **Validation Gating:** Add a check in `run_pipeline.py` that aborts if the `showdown_correlation` drops below a defined threshold (e.g., 0.50).
+*   **Smart Rerunning:** Implement a lightweight "stale check" (checking file timestamps) so the pipeline only reruns steps if inputs have changed.
+*   **Standardized Logging:** Shift all `print` statements to a structured `logging` system that writes to both stdout and a `pipeline_run.log`.
+*   **Feature Importance Export:** Automatically export a `feature_importance.png` and CSV during the Training step to maintain observability.
+
+---
+
+## 9. SYSTEM RULES & WORKFLOWS
 
 ### 1. Dynamic Task Expansion & Evolution
 *   **Expansion:** Any task taking longer than 60 minutes or containing hidden complexity MUST be broken down into smaller subtasks.
 *   **Plan Evolution:** Update this `PLAN.md` file immediately when architecture changes or assumptions are invalidated.
-*   **State Tracking:** Keep all `status` fields strictly updated (`pending` ➡️ `in-progress` ➡️ `done`).
+*   **State Tracking:** Keep all `status` fields strictly updated (`[ ]` ➡️ `[/]` ➡️ `[x]`).
 
 ### 2. Execution Logging & Experiment Tracking
 *   **Mandatory Logging:** Upon completion of *any* task, a corresponding entry MUST be written to `DEVELOPMENT_LOG.md`.
-*   **Experiment Tracking Layer:** For every model training run (Phase 5), the log entry MUST include:
+*   **Experiment Tracking Layer:** For every model training run, the log entry MUST include:
     *   `dataset_version`: Timestamp/Hash of the training CSV.
     *   `feature_version`: List of active features used.
     *   `parameters`: XGBoost hyper-parameters.
-    *   `metrics`: LogLoss, MSE, and Ground-Truth Accuracy (from Phase 4).
-
----
-
-## 1. System Overview
-
-**Modular Architecture:**
-- `configs/`: Centralized JSON pipeline & model configurations.
-- `data/`: Raw, interim (parsed), and processed (featured/labeled) data.
-- `src/`: Core logic modules (parsers, features, labeling, models, evaluation).
-- `pipeline/`: Unified entry point (`run_pipeline.py`).
-- `tests/`: Automated validation suite.
-
-**Data Flow:** 
-Raw PHH (`data/raw`) ➡️ **[Phase 1: Parsers]** Parsed Actions (`data/interim`) ➡️ **[Phase 2: Features]** Feature Vector (`data/interim`) ➡️ **[Phase 3: Labeling]** Soft Labels (`data/processed`) ➡️ **[Phase 4: Evaluation]** Ground Truth Validation ➡️ **[Phase 5: Models]** Iterative Training ➡️ **[Phase 6: Inference]** API.
-
----
-
-## 2. Data Contract Layer (Schemas)
-
-### 2.1 Parsed Data Schema (Intermediate Parquet)
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `hand_id` | String | Unique identifier (Filename + Hand Index) |
-| `player_id` | String | Verified consistent identity |
-| `street` | Int | 0:Pre, 1:Flop, 2:Turn, 3:River |
-| `pot_before` | Float | Total chips in pot before the current action |
-| `bet_amount` | Float | The value of the current aggressive action |
-| `board_cards` | List[Str] | Public cards on the table (max 5) |
-| `is_showdown` | Boolean | True if hand reached showdown |
-| `hole_cards` | List[Str] | Revealed cards (if is_showdown=True), else Empty |
-
----
-
-## 3. Execution Plan
-
-### Phase 0: Production-Grade Restructuring
-*   **Task 0.1: Modular Directory Setup** (`status: done`)
-    - [x] Create `src/`, `configs/`, `data/`, `pipeline/` hierarchy.
-*   **Task 0.2: Centralized Configuration** (`status: done`)
-    - [x] Implement `pipeline_config.json` and `src/utils/config_loader.py`.
-*   **Task 0.3: Modular Code Relocation** (`status: done`)
-    - [x] Move scripts to functional modules and update absolute imports.
-*   **Task 0.4: Unified Pipeline Entry** (`status: done`)
-    - [x] Create `pipeline/run_pipeline.py` for atomic execution.
-
-### Phase 1: Data Pipeline Initialization
-*   **Task 1.1: Environment & Parser Setup** (`status: done`)
-*   **Task 1.2: Cross-File Identity Verification** (`status: done`)
-*   **Task 1.3: Batch Parsing & Feature Extraction** (`status: done`)
-    - [x] Refactored into `src/parsers/batch_parser.py`.
-*   **Task 1.6: Aggressive HandHQ Ingestion (.phhs)** (`status: done`)
-    - [x] Scaled ingestion to 74k+ records in `data/interim`.
-
-### Phase 1.5: Heuristic Design & Calibration
-*   **Subtask: Analyze Joint Distributions** (`status: done`)
-*   **Subtask: Numerical Boundary Extraction (v1)** (`status: done`)
-*   **Subtask: Identify bluff-indicative patterns** (`status: done`)
-*   **Subtask: Define initial heuristic components** (`status: done`)
-
-### Phase 2: Feature Engineering (v2)
-*   **Task 2.1: Opponent Profiling Aggregation** (`status: done`)
-*   **Task 2.2: Board Texture & Betting Features** (`status: done`)
-    - [x] Implemented in `src/features/engineer_features_v2.py`.
-*   **Task 2.3: Range Density Estimation** (`status: done`)
-*   **Task 2.4: Temporal Feature Dependency** (`status: done`)
-*   **Task 2.5: Data Leakage Guard** (`status: done`)
-*   **Task 2.6: Advanced Interaction Features (v2)** (`status: done`)
-
-### Phase 3: Heuristic Labeling Engine (v2)
-*   **Task 3.1: Construct Weighted Scoring Labeler** (`status: done`)
-    - [x] Implemented in `src/labeling/heuristic_labeler_v2.py`.
-*   **Task 3.2: High-Precision Threshold Calibration** (`status: done`)
-
-### Phase 4: Ground Truth & Evaluation
-*   **Task 4.1: Showdown Accuracy & Calibration** (`status: done`)
-    - [x] Core eval logic moved to `src/evaluation/`.
-*   **Task 4.2: Data Quality Verification** (`status: done`)
-    - [x] Implemented `src/evaluation/check_data_stats.py`.
-
-### Phase 5: Model Training & Iterative Improvement
-*   **Task 5.1: XGBoost Pipeline & Experiment Tracking** (`status: done`)
-*   **Task 5.2: Deep Model Refinement (v2)** (`status: in-progress`)
-    - [x] Refactored `src/models/train_model_v2.py` with modular config.
-    - [ ] Execute `train_model_v2` on 74k+ records via pipeline.
-    - [ ] Verify >70% Precision target.
-
-### Phase 6: Inference System
-*   **Task 6.1: FastAPI / Predictor Service** (`status: pending`)
-    - [ ] Create `src/interfaces/inference_api.py`.
-    - [ ] Implement `predict_bluff` endpoint.
+    *   `metrics`: LogLoss, MSE, and PR-AUC.

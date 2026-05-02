@@ -89,7 +89,8 @@ class PHHParser:
                         action_data['hole_cards'] = []
                     yield action_data
                 self.parsed_count += 1
-            except:
+            except Exception as e:
+                logger.error(f"Error parsing hand {hand_idx} in {filename}: {e}")
                 continue
 
     def _is_showdown(self, hand) -> bool:
@@ -115,7 +116,7 @@ class PHHParser:
                         if 0 <= p_idx < len(hand.players):
                             p_name = hand.players[p_idx]
                             hole_cards[p_name] = [c_str[i:i+2] for i in range(0, len(c_str), 2)]
-                    except: pass
+                    except Exception: pass
         return hole_cards
 
     def _extract_street_actions(self, hand, players, starting_stacks) -> List[Dict[str, Any]]:
@@ -141,7 +142,7 @@ class PHHParser:
                     try:
                         bet_amount = float(token)
                         break
-                    except: continue
+                    except Exception: continue
                 
                 if bet_amount <= 0: continue
                 
@@ -153,7 +154,8 @@ class PHHParser:
                     'board_cards': board_cards,
                     'starting_stack': float(starting_stacks[actor_index]) if actor_index < len(starting_stacks) else 0.0
                 })
-        except: pass
+        except Exception as e:
+            logger.error(f"Error extracting street actions: {e}")
         return actions
 
     def parse_directory(self, directory: str, pattern: str = "*.phh", limit: Optional[int] = None):

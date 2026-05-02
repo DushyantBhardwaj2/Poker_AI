@@ -4,13 +4,21 @@ from sklearn.metrics import precision_recall_fscore_support, confusion_matrix, p
 import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
+import os
+
+from src.utils.config_loader import get_data_path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def validate_labels():
     logger.info("Loading labeled data...")
-    df = pd.read_parquet('parsed_output/labeled_dataset_v1.parquet')
+    labels_v2_path = get_data_path('labels_v2')
+    if not labels_v2_path or not os.path.exists(labels_v2_path):
+        logger.error(f"Labeled data not found at {labels_v2_path}")
+        return
+        
+    df = pd.read_parquet(labels_v2_path)
     
     # Filter for showdown hands where we have a true label
     showdown_df = df[df['true_label'].notna()].copy()

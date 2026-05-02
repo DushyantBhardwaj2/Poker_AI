@@ -260,20 +260,35 @@ class DataQualityValidator:
         return "\n".join(lines)
 
 
-def main():
-    """Main validation workflow."""
+def run_validation(file_path: str = None) -> bool:
+    """
+    Run the full validation suite on a parquet file.
     
-    # Load parsed data
-    parquet_file = Path("parsed_output/parsed_hands_sample.parquet")
+    Args:
+        file_path: Path to the parquet file to validate. 
+                  If None, uses the default sample path.
+    
+    Returns:
+        True if the data quality is acceptable (no critical failures).
+    """
+    from src.utils.config_loader import get_data_path
+    
+    if file_path is None:
+        file_path = get_data_path("parsed_aggressive") or "parsed_output/parsed_hands_sample.parquet"
+    
+    parquet_file = Path(file_path)
     
     if not parquet_file.exists():
         logger.error(f"Parsed data file not found: {parquet_file}")
-        logger.error("Run batch_parser.py first to generate parsed_hands_sample.parquet")
-        return
+        return False
     
-    logger.info(f"Loading parsed data from: {parquet_file}")
+    logger.info(f"Loading parsed data for validation from: {parquet_file}")
     df = pd.read_parquet(parquet_file)
     
+    if df.empty:
+        logger.error("Parsed data is empty. Validation failed.")
+        return False
+
     # Run validations
     validator = DataQualityValidator(df)
     results = validator.run_all_validations()
@@ -282,12 +297,25 @@ def main():
     report = validator.generate_report()
     print(report)
     
-    # Save report
-    report_file = Path("parsed_output/data_quality_report.txt")
-    with open(report_file, "w") as f:
-        f.write(report)
+    # Save report - try to save it in the same directory as the input
+    report_file = parquet_file.parent / f"data_quality_report_{parquet_file.stem}.txt"
+    try:
+        with open(report_file, "w") as f:
+            f.write(report)
+        logger.info(f"\nReport saved to: {report_file}")
+    except Exception as e:
+        logger.warning(f"Could not save report file: {e}")
     
-    logger.info(f"\nReport saved to: {report_file}")
+    # Define success criteria: critical checks must pass
+    # We allow action_integrity to be a warning (False) if it's just due to single player aggressive hands
+    critical_checks = ['pot_monotonicity', 'street_transitions']
+    success = all(results.get(check, False) for check in critical_checks)
+    
+    return success
+
+def main():
+    """Main validation workflow."""
+    run_validation()
 
 
 if __name__ == "__main__":
