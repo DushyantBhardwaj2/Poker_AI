@@ -19,54 +19,61 @@ def calculate_dryness(board_cards):
     if board_cards is None or len(board_cards) < 3:
         return 1.0
         
-    # Flatten and clean cards
-    cards = []
-    for c in board_cards:
-        if isinstance(c, (list, np.ndarray)):
-            cards.append(str(c[0]).strip('[]'))
-        else:
-            cards.append(str(c).strip('[]'))
-            
-    # Pokerkit card objects
-    try:
-        pk_cards = []
-        for c in cards:
-            # Card.parse returns a generator
-            pk_cards.extend(list(Card.parse(c)))
-    except:
-        return 0.5 # Fallback
-        
-    if not pk_cards:
-        return 1.0
-        
     RANK_MAP = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
     
-    ranks = [RANK_MAP.get(c.rank.value, 0) for c in pk_cards]
-    suits = [c.suit.value for c in pk_cards]
+    ranks = []
+    suits = []
     
+    for c in board_cards:
+        # Clean card string
+        c_str = str(c).strip('[]"\' ')
+        if len(c_str) < 2: continue
+        
+        rank_char = c_str[0]
+        suit_char = c_str[1]
+        
+        ranks.append(RANK_MAP.get(rank_char, 0))
+        suits.append(suit_char)
+        
+    if not ranks:
+        return 1.0
+        
     score = 1.0
     
     # 1. Flush Draw Potential
-    suit_counts = pd.Series(suits).value_counts()
-    max_suit = suit_counts.max()
+    # Simple count of suits
+    suit_counts = {}
+    for s in suits:
+        suit_counts[s] = suit_counts.get(s, 0) + 1
+    
+    max_suit = max(suit_counts.values()) if suit_counts else 0
     if max_suit >= 3:
-        score -= 0.4 # Flush completed or heavy draw
+        score -= 0.4
     elif max_suit == 2:
-        score -= 0.1 # Backdoor or minor draw
-        
-    # 2. Straight Draw Potential (simplified)
-    rank_values = sorted([r for r in ranks])
-    # Check for gaps
-    gaps = np.diff(rank_values)
-    if (gaps == 1).sum() >= 2:
-        score -= 0.3 # Connected board
-    elif (gaps == 1).sum() == 1:
         score -= 0.1
         
+    # 2. Straight Draw Potential
+    rank_values = sorted(list(set(ranks))) # Unique ranks
+    if len(rank_values) >= 2:
+        # Check for consecutive ranks
+        consecutive = 0
+        max_consecutive = 0
+        for i in range(len(rank_values) - 1):
+            if rank_values[i+1] - rank_values[i] == 1:
+                consecutive += 1
+            else:
+                max_consecutive = max(max_consecutive, consecutive)
+                consecutive = 0
+        max_consecutive = max(max_consecutive, consecutive)
+        
+        if max_consecutive >= 2:
+            score -= 0.3
+        elif max_consecutive == 1:
+            score -= 0.1
+            
     # 3. Paired Board
-    rank_counts = pd.Series(ranks).value_counts()
-    if rank_counts.max() >= 2:
-        score += 0.1 # Paired boards are often drier for some ranges
+    if len(ranks) != len(set(ranks)):
+        score += 0.1
         
     return max(0.0, min(1.0, score))
 

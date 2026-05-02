@@ -1,4 +1,4 @@
-from packages.domain.models import GameState, Action, ActionType, Player, GameRound
+from packages.domain.models import GameState, Action, ActionType, Player, GameRound, Pot
 
 class ProcessActionUseCase:
     def execute(self, state: GameState, action: Action) -> GameState:
@@ -45,14 +45,6 @@ class ProcessActionUseCase:
                 player.vpip_this_hand = True
                 player.pfr_this_hand = True
                 
-            # action.amount is the TOTAL bet this player wants to have in front of them
-            # Minimum raise check
-            added_amount = action.amount - state.current_bet
-            if added_amount < state.last_raise_amount and action.amount < (player.stack + player.current_bet):
-                 # Allow if it's an all-in that is less than min raise? 
-                 # For now, let's be strict or at least update last_raise if it's a full raise
-                 pass
-            
             total_to_subtract = action.amount - player.current_bet
             if total_to_subtract >= player.stack:
                 # All-in raise
@@ -85,14 +77,64 @@ class ProcessActionUseCase:
                     p.has_acted = False
             player.has_acted = True
 
-        # 3. Move to next player
+        elif action.action_type == ActionType.ALL_IN:
+            if state.round == GameRound.PRE_FLOP:
+                player.vpip_this_hand = True
+                if player.stack + player.current_bet > state.current_bet:
+                    player.pfr_this_hand = True
+            
+            all_in_amount = player.stack + player.current_bet
+            
+            if all_in_amount > state.current_bet:
+                diff = all_in_amount - state.current_bet
+                if diff > state.last_raise_amount:
+                    state.last_raise_amount = diff
+                state.current_bet = all_in_amount
+                # Reset has_acted for others
+                for i, p in enumerate(state.players):
+                    if i != action.player_index and not p.is_folded and not p.is_all_in:
+                        p.has_acted = False
+            
+            state.pot += player.stack
+            player.total_contributed += player.stack
+            player.stack = 0
+            player.current_bet = all_in_amount
+            player.is_all_in = True
+            player.has_acted = True
+
+        # 3. Update side pots display
+        state.pots = self._calculate_current_pots(state.players)
+
+        # 4. Move to next player
         state.current_player_index = self._get_next_player_index(state)
 
-        # 4. Check if round finished
+        # 5. Check if round finished
         if self._is_round_finished(state):
             self._advance_round(state)
 
         return state
+
+    def _calculate_current_pots(self, players: list[Player]) -> list[Pot]:
+        contributions = [p.total_contributed for p in players if p.total_contributed > 0]
+        if not contributions:
+            return [Pot(amount=0, eligible_player_indices=[])]
+            
+        unique_amounts = sorted(list(set(contributions)))
+        pots = []
+        prev_amount = 0
+        for amount in unique_amounts:
+            current_pot_chunk = amount - prev_amount
+            eligible_players = [i for i, p in enumerate(players) if p.total_contributed >= amount]
+            
+            total_chunk_amount = 0
+            for p in players:
+                total_chunk_amount += min(max(p.total_contributed - prev_amount, 0), current_pot_chunk)
+            
+            if total_chunk_amount > 0:
+                pots.append(Pot(amount=total_chunk_amount, eligible_player_indices=eligible_players))
+            prev_amount = amount
+            
+        return pots if pots else [Pot(amount=0, eligible_player_indices=[])]
 
     def _get_next_player_index(self, state: GameState) -> int:
         num_players = len(state.players)

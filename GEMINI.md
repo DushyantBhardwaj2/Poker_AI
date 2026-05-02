@@ -1,90 +1,31 @@
 # ♠️ PokerSense AI — AI Poker Advisor & Turn-Based Poker Tracker
 
-An intelligent poker assistant focused on speed, accuracy, and real-time strategic advice. PokerSense AI tracks live poker games through a minimalist, mobile-friendly interface, calculates deep mathematical probabilities, and provides optimal move recommendations.
-
----
-
 ## 1. Project Overview
+**PokerSense AI** is a real-time poker intelligence system. Its primary goal is to provide high-speed, actionable advice during live poker games, deeply rooted in the foundational principles of David Sklansky's "The Theory of Poker". It is a poker assistant, not a dashboard or a simple poker calculator. 
 
-### Project Name
-**PokerSense AI**
+### Core Objective
+To track live games efficiently and provide immediate strategic advice based on a fusion of mathematical probability (EV, Pot Odds, Equity) and opponent behavioral modeling (Hand Ranges, Player Profiling, Deception).
 
-### Problem Statement
-Standard poker calculators are often clunky and difficult to use during a live game. Players need a fast, turn-based tracker that provides instant AI-backed advice on win probability, pot odds, and expected value (EV) without the distraction of complex game graphics.
+## 2. System Behavior Expectations
+- **Decision Usefulness over Metrics:** The system's primary directive is to provide the best possible *actionable* advice (Fold, Call, Raise) in real-time. Academic ML metrics (like achieving 99% precision in bluff detection) are secondary to making EV-positive recommendations that make sense in the context of the game.
+- **Always Explain:** A recommendation is useless without trust. The system MUST explain its reasoning, citing specific theoretical concepts like **Pot Odds, Implied Odds, Positional Advantage, or the Fundamental Theorem**.
+- **Real-Time Constraints:** The system must be fast. All calculations and model inferences must execute in milliseconds to keep up with the pace of a live game.
+- **Adaptive:** The system must adapt its advice based on the accumulated behavior profile of the specific opponents at the table.
+- **Educational Core:** The system doubles as a learning tool. The foundational data from "The Theory of Poker" has been comprehensively extracted into detailed modules in `docs/theory/` and summarized in `docs/poker_theory_summary.md`, forming the basis for a "Theory Mastery Course" and a quick-reference "Strategist's Guide".
 
-### Objective of the Project
-To provide a high-speed, minimalist "poker sidekick" that:
-- Tracks live game state through a simple turn-based UI.
-- Calculates mathematical equity and EV using Monte Carlo simulations.
-- Analyzes opponent behavior (VPIP/PFR) to predict bluffs and hand ranges.
-- Recommends the mathematically optimal move in real-time.
+## 3. Architecture Overview (Modular)
+- **Frontend (Astro + React)**: Utilizing **Astro File-Based Routing** for high-performance navigation.
+  - **MainLayout**: Global wrapper ensuring persistent Sidebar and Footer.
+  - **View Transitions**: Seamless SPA-like transitions using Astro's `ClientRouter`.
+  - **Component Model**: React handles intensive game logic (`PokerTable`), while Astro orchestrates routing and static content (Theory, Guide).
+- **Backend (FastAPI)**: Orchestrates game flow, AI analysis, and data persistence.
+- **AI Domain (packages/ai/)**:
+  - `win_probability.py`: Mathematical simulation.
+  - `opponent_profiler.py`: Behavior tracking (VPIP/PFR) and classification (TAG/LAG/Nit).
+  - `move_recommender.py`: Strategic recommendation engine with theoretical injection.
+- **Database (SQLite)**: Persistent storage for hand history and player profiling.
 
-### Positioning
-**AI Poker Advisor + Turn-Based Poker Tracker**
-
----
-
-## 2. Features
-
-### Core Features
-- [x] **Setup Game:** Configure players, stacks, and blinds in seconds.
-- [x] **Card Selection:** Quickly input hole cards and community cards (Flop, Turn, River).
-- [x] **Vertical Action Tracker:** A color-coded vertical list for tracking player actions turn-by-turn.
-- [x] **AI Strategy Engine:** Real-time Win Probability, Pot Odds, and EV Analysis.
-- [x] **Persistent Stats:** Tracks opponent VPIP/PFR across hands using a local database.
-
-### UI/UX Flow (New Architecture)
-1. **Setup Screen:** Input number of players, stacks, and blinds.
-2. **Card Selection Screen:** Interactive card picker for user hole cards and community cards.
-3. **Turn-Based Tracker:** Vertical list of players with color-coded turn indicators.
-   - **Green:** Action completed this round.
-   - **Blue:** Current active player (input allowed).
-   - **Yellow:** Next upcoming turn.
-   - **Gray/Red:** Folded or busted.
-4. **AI Suggestion Panel:** Comprehensive breakdown of the current situation and the recommended move.
-
----
-
-## 3. Tech Stack
-
-| Layer | Technology |
-|------|------------|
-| Frontend | React.js / Next.js (TypeScript) |
-| Styling | Tailwind CSS |
-| Backend | FastAPI (Python) |
-| Database | SQLite (SQLAlchemy) |
-| AI/ML | Monte Carlo Simulations, Heuristic Engines |
-
----
-
-## 4. System Architecture
-
-### Frontend Component Structure
-- `SetupView`: Handles game initialization.
-- `CardInputView`: Handles card selection for hole and community cards.
-- `ActionTracker`: The main vertical list of player status and action buttons.
-- `AIDashboard`: Real-time analysis panel.
-
-### Data Flow
-1. User inputs setup/cards/actions in the UI.
-2. UI calls FastAPI endpoints (`/game/start`, `/game/action`, `/ai/win-probability`).
-3. Backend processes logic and returns updated `GameState`.
-4. UI renders the state using color-coded turn indicators and updated stack sizes.
-5. At showdown, stats are committed to the SQLite database.
-
----
-
-## 5. Development Roadmap
-
-### Completed
-- [x] Phase 1: Core Architecture & Domain Models
-- [x] Phase 2: Game Engine (Turn management, Round advancement)
-- [x] Phase 3: AI Advisor (Win Prob, EV, Opponent Profiling)
-- [x] Phase 4: Initial Frontend Integration
-- [x] Phase 5: Persistent Hand History & Stats
-
-### Current Focus
-- [ ] **Frontend Redesign:** Pivot from graphical simulation to minimalist Turn-Based Tracker UI.
-- [ ] **Bluff Probability Engine:** Implement advanced logic for bluff detection based on bet sizes and opponent profiles.
-- [ ] **Session Exports:** Allow users to export hand histories for post-game study.
-   
+## 4. Design Aesthetics & UX
+- **Premium Interface**: Dark-themed, high-contrast 'Black and Gold' aesthetic inspired by tactical HUDs.
+- **Responsive & Tactile**: Full mobile support with optimized touch targets and tactile scale feedback on all interactive elements.
+- **Minimal Clicks**: Real-time updates and simplified input flows to keep pace with live gameplay.

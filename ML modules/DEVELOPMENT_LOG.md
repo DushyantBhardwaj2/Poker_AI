@@ -489,3 +489,35 @@
 3. **Fail-Fast Design:** The dependency checker ensures that if a user skips a step (like `labeling`), the `train` step will abort immediately with a clear error message.
 
 **Status:** ✅ Phase A Complete; Moving to Phase B (Quality & Calibration).
+
+## 📅 Session: May 2, 2026 (Continued)
+**Focus:** Advanced Feature Engineering (v3)
+
+### 🚀 Progress Log
+- [x] **v3 Feature Implementation:** Created `engineer_features_v3.py` with enhanced interaction and narrative features.
+- [x] **New Features Added:**
+    - **Tightness Interaction:** `(1 - vpip) * rel_bet_size` to distinguish between "Rock" and "Maniac" betting patterns.
+    - **Dryness Delta:** `dryness - prev_street_dryness` to capture "brick" turns/rivers.
+    - **Semantic Binning:** Classified bets into discrete categories (Small, Half, Pot, Overbet) for psychological alignment.
+- [x] **Configuration Update:** Added `features_v3` to `pipeline_config.json`.
+- [x] **Plan Update:** Reflected v3 features in `PLAN.md` and updated pipeline sequencing.
+
+## 📅 Session: May 2, 2026 (Continued - Task C.1)
+**Focus:** High-Precision Model Calibration & Direct Showdown Training
+
+### 🚀 Progress Log
+- [x] **v3 Model Training:** Executed initial training on the full 5.8M record heuristic dataset. Observed high fidelity to the heuristic but low correlation with showdown outcomes.
+- [x] **Pivoted Strategy:** Shifted from purely weak supervision to **Direct Showdown Training**. Leveraged 615,256 ground-truth records for binary classification.
+- [x] **Calibration Breakthrough:** Achieved **ROC AUC 0.750**. Discovered that bluff signal is street-dependent:
+    - **Street 1 (Flop):** 54.3% Precision.
+    - **Street 2 (Turn):** **71.1% Precision** (Target Met).
+    - **Street 3 (River):** **93.2% Precision** (Target Exceeded).
+- [x] **Model Delivery:** Serialized the high-precision classifier to `src/models/bluff_detector_showdown_v3.joblib`.
+
+### 💡 Core Decisions
+1. **Direct Training Pivot:** Decided to use the 615k showdown records as a primary training set instead of just a validation set. This allowed the model to learn empirical correlations (like the -0.23 correlation between street index and bluff probability) that the heuristic missed.
+2. **Street-Wise Thresholding:** Instead of a global threshold that averages down precision, we identified that the model is highly reliable on the Turn and River. We will expose these street-wise confidence levels in the inference API.
+3. **Feature Priority:** `street`, `dryness`, and `tightness_bet_interaction` emerged as the most discriminative features for actual bluffs, confirming that "contextual narrative" is more important than raw bet size.
+
+**Status:** ✅ Task C.1 COMPLETE; Transitioning to Task C.2 (Inference API).
+
