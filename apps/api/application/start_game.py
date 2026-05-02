@@ -7,9 +7,8 @@ class StartGameUseCase:
         deck = Deck()
         players = []
         for name, stack in zip(player_names, initial_stacks):
-            # Deal 2 hole cards to each player
-            hole_cards = deck.draw(2)
-            players.append(Player(name=name, stack=stack, hole_cards=hole_cards))
+            # Do NOT deal cards automatically for live analysis
+            players.append(Player(name=name, stack=stack, hole_cards=[]))
         
         # Initial blinds
         sb_idx = 1 % len(players)

@@ -1,128 +1,30 @@
-# ♠️ PokerSense AI — Smart Poker Advisor & Live Game Analyzer
+# ♠️ PokerSense AI — Real-Time Poker Intelligence System
 
-An AI-powered poker assistant that tracks live poker games, analyzes betting behavior, predicts bluff probability, calculates winning chances, and recommends optimal moves in real-time.
+PokerSense AI is a **real-time decision support system** designed to assist players during live poker games. Rather than just calculating math or serving as a post-game analytics dashboard, it combines mathematical probability, opponent behavioral modeling, and game logic to provide actionable, real-time advice with clear explanations.
 
----
+## 1. What the System Is
+PokerSense AI acts like an expert poker coach sitting beside you. It tracks the game state, calculates odds on the fly, profiles opponents based on their betting patterns, and gives you a single, clear recommendation (Fold, Call, Raise) along with the reasoning behind it.
 
-## 1. Project Overview
+## 2. Key Components
+- **Win Probability Engine:** Uses Monte Carlo simulations to calculate your hand's mathematical equity against expected opponent ranges.
+- **Bluff Detection Model:** Analyzes opponent actions (bet sizing relative to pot, board texture, and player history) to predict the likelihood of a bluff.
+- **Decision Engine:** Merges win probability, pot odds, and bluff likelihood to generate an Expected Value (EV)-positive recommendation.
+- **Explanation Engine:** Translates complex EV calculations into human-readable advice (e.g., "Call: You have 3-to-1 pot odds, but a 40% chance of hitting your flush, making this a profitable call.").
+- **Player Modeling:** Continuously tracks opponent tendencies (VPIP, PFR, Aggression Frequency) and uses this data to adjust bluff detection and range estimation.
 
-### Project Name
-**PokerSense AI**
+## 3. How It Works
+1. **Game State Input:** You input your hole cards, community cards, pot size, and opponent actions via a fast, mobile-friendly UI.
+2. **Feature Extraction:** The system processes the raw game state into features (pot odds, board texture, opponent VPIP).
+3. **Probability & Bluff Modeling:** The AI runs win probability simulations and feeds the extracted features into the bluff detection model.
+4. **Decision Engine:** The AI computes the highest EV move based on the math and the behavioral models.
+5. **UI Output & Explanation:** The system presents the recommended action along with a clear, concise explanation of *why* you should make that move.
 
-### Problem Statement
-Poker is a game of incomplete information, probability, psychology, and strategic decision-making. Players often struggle to:
-- Calculate winning probability quickly
-- Evaluate pot odds and expected value
-- Detect opponent bluffing
-- Determine the best move under pressure
+## 4. Use Cases
+- **Live Poker Assistance:** Get real-time advice on complex decisions during a live or online game.
+- **Decision Support:** Validate your instincts with mathematical and behavioral backing.
+- **Player Analysis:** Keep track of how specific opponents play over time, allowing the system to adapt its advice to exploit their weaknesses.
+- **Post-Game Coaching:** Review hands and understand the math and behavioral tells you might have missed.
 
-There is no simple, real-time assistant that combines live game tracking, AI-based opponent analysis, strategy recommendations, and post-game coaching.
-
-### Objective of the Project
-To build an intelligent poker advisor that:
-- Mirrors a real poker game through manual input
-- Tracks player actions in real-time
-- Calculates mathematical probabilities
-- Detects bluff patterns
-- Recommends optimal decisions
-- Teaches users strategy using historical analysis
-
-### Target Users
-- Beginner poker players
-- Intermediate poker players
-- Professional players wanting assistance
-- Poker learners/students
-- Game theory enthusiasts
-
-### Real-world Use Case
-A poker game is being played in real life or online. User opens PokerSense AI and:
-1. Enters the number of players
-2. Enters stack sizes
-3. Enters their own cards
-4. Tracks every player's action turn-by-turn
-
-The app then:
-- Updates pot size
-- Calculates winning chances
-- Predicts bluff probability
-- Suggests the best move
-
-### Why this Project is Unique / Innovative
-Unlike simple poker calculators, PokerSense AI combines:
-- **Live Poker Tracking UI**
-- **AI Move Recommendation**
-- **Bluff Detection**
-- **Opponent Behavior Analysis**
-- **Game Theory Integration**
-- **Hand History Coaching**
-
-It is a hybrid of a poker calculator, poker coach, and poker AI advisor.
-
----
-
-## 2. Features
-
-### Core Features
-- [x] Create live poker table/game
-- [x] Add N players
-- [x] Add stack sizes
-- [x] Select user cards
-- [x] Add community cards
-- [x] Track player actions (bet, raise, fold, check, call)
-- [x] Automatic pot calculation (including side pots)
-- [x] Turn management (pre-flop, flop, turn, river, showdown)
-
-### Advanced Features
-- [ ] Hand history storage & replay
-- [ ] Player statistics dashboard (VPIP, PFR, aggression factor)
-- [ ] Opponent profiling (Tight/Aggressive, Loose/Passive)
-- [ ] Strategy explanation engine (explain *why* a move is suggested)
-- [ ] Session analytics & graphs
-
-### AI/ML Features
-
-| Feature | Purpose |
-|---------|---------|
-| Win Probability Prediction | Predict the chance of winning the hand |
-| Bluff Detection | Predict if an opponent is bluffing |
-| Opponent Type Classification | Classify as Tight/Loose, Aggressive/Passive |
-| Hand Strength Prediction | Estimate opponent’s hidden card range |
-| Bet Size Recommendation | Suggest optimal bet size based on pot odds & opponent |
-| Move Recommendation | Fold / Call / Raise / All-in |
-| EV Analysis | Long-term profitability of a decision |
-| Pot Odds Engine | Compare pot odds to hand equity |
-| Personalized Strategy | Adapt to user’s playstyle over time |
-
-### Future Enhancements
-- Screenshot OCR recognition (auto-detect cards/chips)
-- Computer Vision card/chip detection
-- Voice assistant (“What should I do?”)
-- Real-time overlay on poker clients
-- Multiplayer sync (cloud game state)
-- GTO Solver integration
-
----
-
-## 3. Tech Stack
-
-| Layer | Technology |
-|------|------------|
-| Frontend | React.js / Next.js |
-| Styling | Tailwind CSS |
-| Backend | Node.js / Express.js (or FastAPI) |
-| Database | MongoDB (or PostgreSQL) |
-| Auth | Firebase Auth / JWT |
-| AI/ML | Python, Scikit-learn, TensorFlow, PyTorch |
-| ML API | FastAPI (Python microservice) |
-| APIs | REST (future: WebSocket for real-time) |
-| Deployment (Frontend) | Vercel / Netlify |
-| Deployment (Backend) | Railway / Render / AWS EC2 |
-| Deployment (ML Service) | Hugging Face Spaces / AWS Lambda / FastAPI on Render |
-| Version Control | Git + GitHub |
-| CI/CD | GitHub Actions |
-
----
-
-## 4. System Architecture
-
-### High-Level Architecture
+## Tech Stack
+- **Frontend:** Astro (with React components), Tailwind CSS, strictly tailored for real-time mobile tracking.
+- **Backend/AI:** Python (FastAPI), SQLAlchemy, Scikit-Learn/PyTorch (for ML).

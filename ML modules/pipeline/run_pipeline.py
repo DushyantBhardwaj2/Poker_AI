@@ -13,8 +13,11 @@ from src.evaluation.validate_data_quality import run_validation
 from src.preprocessing.generate_mismatch_surface import generate_mismatch_surface
 from src.features.calculate_player_stats_aggressive import run_profiling
 from src.features.engineer_features_v2 import engineer_features_v2
+from src.features.engineer_features_v3 import engineer_features_v3
 from src.labeling.heuristic_labeler_v2 import generate_labels_v2
+from src.labeling.heuristic_labeler_v3 import generate_labels_v3
 from src.models.train_model_v2 import train_model_v2
+from src.models.train_model_v3 import train_model_v3
 from src.utils.config_loader import load_config, get_data_path
 
 logging.basicConfig(
@@ -23,18 +26,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger("ML_Pipeline")
 
-def check_dependencies(steps):
+def check_dependencies(steps, version='v2'):
     """Verify that required input files exist for each step."""
     config = load_config()
     data_config = config.get('data', {})
+    
+    feature_key = f'features_{version}'
+    label_key = f'labels_{version}'
     
     dependencies = {
         'validate': ['parsed_aggressive'],
         'surface': ['parsed_aggressive'],
         'profile': ['raw_hand_histories'],
         'features': ['parsed_aggressive', 'player_stats_aggressive'],
-        'labeling': ['features_v2', 'mismatch_surface'],
-        'train': ['labels_v2']
+        'labeling': [feature_key, 'mismatch_surface'],
+        'train': [label_key]
     }
     
     missing = []
@@ -57,19 +63,19 @@ def check_dependencies(steps):
     
     return missing
 
-def run_pipeline(steps=None, limit=1000, dry_run=False):
+def run_pipeline(steps=None, limit=1000, dry_run=False, version='v2'):
     """
     Run the ML pipeline steps.
     Steps can be: 'ingest', 'validate', 'surface', 'profile', 'features', 'labeling', 'train', 'all'
     """
     config = load_config()
-    logger.info("Starting ML Pipeline...")
+    logger.info(f"Starting ML Pipeline ({version})...")
     
     if not steps or 'all' in steps:
         steps = ['ingest', 'validate', 'surface', 'profile', 'features', 'labeling', 'train']
     
     # Check dependencies (except for ingest which creates its own)
-    missing = check_dependencies([s for s in steps if s != 'ingest'])
+    missing = check_dependencies([s for s in steps if s != 'ingest'], version=version)
     if missing:
         logger.error("Missing dependencies for pipeline execution:")
         for m in missing:
@@ -107,16 +113,25 @@ def run_pipeline(steps=None, limit=1000, dry_run=False):
         run_profiling(limit=max(limit, 2000))
 
     if 'features' in steps:
-        logger.info("--- Step 3: Feature Engineering ---")
-        engineer_features_v2()
+        logger.info(f"--- Step 3: Feature Engineering ({version}) ---")
+        if version == 'v3':
+            engineer_features_v3()
+        else:
+            engineer_features_v2()
         
     if 'labeling' in steps:
-        logger.info("--- Step 4: Heuristic Labeling ---")
-        generate_labels_v2()
+        logger.info(f"--- Step 4: Heuristic Labeling ({version}) ---")
+        if version == 'v3':
+            generate_labels_v3()
+        else:
+            generate_labels_v2()
         
     if 'train' in steps:
-        logger.info("--- Step 5: Model Training ---")
-        train_model_v2()
+        logger.info(f"--- Step 5: Model Training ({version}) ---")
+        if version == 'v3':
+            train_model_v3()
+        else:
+            train_model_v2()
         
     logger.info("ML Pipeline completed successfully.")
 
@@ -136,10 +151,16 @@ if __name__ == "__main__":
         help="Limit for files to process in ingestion/profiling"
     )
     parser.add_argument(
+        "--version",
+        choices=["v2", "v3"],
+        default="v2",
+        help="Feature and Labeling version"
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Check dependencies without executing steps"
     )
     
     args = parser.parse_args()
-    run_pipeline(args.steps, limit=args.limit, dry_run=args.dry_run)
+    run_pipeline(args.steps, limit=args.limit, dry_run=args.dry_run, version=args.version)

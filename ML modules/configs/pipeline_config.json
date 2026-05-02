@@ -13,7 +13,9 @@
         "player_stats_full": "data/interim/player_stats.parquet",
         "player_stats_aggressive": "data/interim/player_stats_aggressive.parquet",
         "features_v2": "data/interim/features_v2.parquet",
-        "labels_v2": "data/interim/labeled_dataset_v2.parquet"
+        "features_v3": "data/interim/features_v3.parquet",
+        "labels_v2": "data/interim/labeled_dataset_v2.parquet",
+        "labels_v3": "data/interim/labeled_dataset_v3.parquet"
     },
     "training": {
         "model_output": "src/models/bluff_detector_v2.joblib",

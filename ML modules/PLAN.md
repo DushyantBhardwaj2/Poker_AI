@@ -24,10 +24,10 @@ The pipeline is managed via `pipeline/run_pipeline.py` and driven by `configs/pi
 | :--- | :--- | :--- | :--- |
 | **1. Ingestion** | `parsers/` | Recursive discovery and NLHE filtering. | `*.phh/*.phhs` ➡️ `parsed_hands_full.parquet` |
 | **2. Profiling** | `features/` | Calculate lifetime VPIP/PFR/Aggression. | `parsed_hands_full` ➡️ `player_stats.parquet` |
-| **3. Features** | `features/` | Narrative, Texture, and Interaction terms. | `parsed_hands` + `stats` ➡️ `features_v2.parquet` |
-| **4. Labeling** | `labeling/` | Probabilistic Weak Supervision (Heuristics). | `features_v2` ➡️ `labeled_dataset_v2.parquet` |
-| **5. Training** | `models/` | XGBoost training with confidence weights. | `labeled_dataset_v2` ➡️ `bluff_detector_v2.joblib` |
-| **6. Evaluation**| `evaluation/`| PR-Curve calibration on showdown data. | `detector_v2` + `showdown` ➡️ `Performance Report` |
+| **3. Features** | `features/` | Narrative, Texture, and Interaction terms (v3). | `parsed_hands` + `stats` ➡️ `features_v3.parquet` |
+| **4. Labeling** | `labeling/` | Probabilistic Weak Supervision (Heuristics). | `features_v3` ➡️ `labeled_dataset_v3.parquet` |
+| **5. Training** | `models/` | XGBoost training with confidence weights. | `labeled_dataset_v3` ➡️ `bluff_detector_v3.joblib` |
+| **6. Evaluation**| `evaluation/`| PR-Curve calibration on showdown data. | `detector_v3` + `showdown` ➡️ `Performance Report` |
 | **7. Inference** | `interfaces/`| Expose prediction as a lightweight service. | `Game State` ➡️ `Bluff Probability (%)` |
 
 ---
@@ -50,11 +50,11 @@ The pipeline is managed via `pipeline/run_pipeline.py` and driven by `configs/pi
 | :--- | :--- | :--- | :--- | :--- |
 | **Phase 0** | Infrastructure | `done` | `done` | Modular structure and config loader implemented. |
 | **Phase 1** | Ingestion | `done` | `done` | Integrated into `run_pipeline.py`. |
-| **Phase 2** | Features | `done` | `done` | v2 features (SPR, Interaction terms) implemented. |
-| **Phase 3** | Labeling | `done` | `done` | Heuristic engine v2 implemented with soft-labels. |
+| Phase 2 | Features | `done` | `done` | v3 features (Tightness Interaction, Dryness Delta) implemented. |
+| **Phase 3** | Labeling | `done` | `done` | Heuristic engine v3 implemented with soft-labels. |
 | **Phase 4** | Evaluation | `done` | `done` | Integrated into pipeline and model training. |
-| **Phase 5** | Training | `in-progress` | `in-progress` | Training on 74k records; Precision optimization pending. |
-| **Phase 6** | Inference | `pending` | `pending` | Blocked by Phase 5 completion. |
+| **Phase 5** | Training | `done` | `done` | Showdown-direct training achieved 93% river precision. |
+| **Phase 6** | Inference | `done` | `done` | `inference_api.py` delivered with high-precision gating. |
 
 ---
 
@@ -77,12 +77,12 @@ The pipeline is managed via `pipeline/run_pipeline.py` and driven by `configs/pi
 ### Phase B: Quality & Calibration (Mid-term)
 *   [x] **B.1:** Integrate `validate_data_quality.py` as a mandatory gate after Ingestion.
 *   [x] **B.2:** Automate the "Joint Distribution Analysis" to generate the `mismatch_surface` dynamically before Labeling.
-*   [ ] **B.3:** Scale `AggressiveParser` to 200k+ records to maximize behavioral depth.
+*   [x] **B.3:** Scale `AggressiveParser` to 200k+ records to maximize behavioral depth. (Achieved 5.8M records)
 
 ### Phase C: Model Optimization & Delivery (Final)
-*   [ ] **C.1:** Execute full PR-curve calibration to hit the **>70% Precision** target for "Strict Bluffs".
-*   [ ] **C.2:** Create the `inference_api.py` wrapper.
-*   [ ] **C.3:** Archive all legacy "v1" scripts into the `archive/` folder to clean the codebase.
+*   [x] **C.1:** Execute full PR-curve calibration to hit the **>70% Precision** target for "Strict Bluffs". (Achieved 71% on Turn, 93% on River)
+*   [x] **C.2:** Create the `inference_api.py` wrapper.
+*   [x] **C.3:** Archive all legacy "v1" and "v2" scripts into the `archive/` folder to clean the codebase.
 
 ---
 
@@ -109,3 +109,79 @@ The pipeline is managed via `pipeline/run_pipeline.py` and driven by `configs/pi
     *   `feature_version`: List of active features used.
     *   `parameters`: XGBoost hyper-parameters.
     *   `metrics`: LogLoss, MSE, and PR-AUC.
+
+---
+
+## 10. REAL-TIME INTEGRATION & DECISION ENGINE ROADMAP (v4.0)
+
+This roadmap defines the transformation of the system from an offline ML pipeline into a real-time, behavioral poker assistant.
+
+### 🔹 PHASE 1: Unified Game State Representation
+*   **Goal:** Standardize the "Inference Context" schema.
+*   **Schema:** `LiveGameState` (hole cards, board cards, pot size, stack sizes, action sequence, player stats).
+*   **Constraint:** Must track `last_aggressor_id` to determine relative position.
+*   **Deliverable:** Pydantic model in `packages/domain/models.py`.
+
+### 🔹 PHASE 2: Real-Time Feature Extraction (Upgraded)
+*   **Goal:** Extract high-signal features for single-hand inference.
+*   **Key Features:**
+    *   **Position:** `is_in_position_relative_to_aggressor` (1 if acting after aggressor, 0 otherwise).
+    *   **Action Encoding:** Boolean flags `[is_bet, is_raise, is_call, is_check]`.
+    *   **Street Index:** (0-3) to capture street-specific bluffing frequencies.
+    *   **Normalization:** Min-Max scale `rel_bet_size`; Log-scale `bet_spike` for stability.
+*   **Logic:** Re-use `analyze_dryness.py` and `engineer_features_v3.py` logic.
+
+### 🔹 PHASE 3: Temporal Bluff Model Integration
+*   **Goal:** Load XGBoost and perform sequence-aware inference.
+*   **Constraints:**
+    *   **Calibration:** Apply Platt Scaling (Logistic Regression) on XGBoost outputs to ensure `bluff_probability` is valid for EV math.
+    *   **Enforcement:** `bluff_probability` MUST be calibrated before use; raw XGBoost outputs must NOT be used in decision engine.
+    *   **Temporal Memory:** Use only the last 2 actions per player to keep model fast and avoid noise.
+    *   **Cold Start:** If hands < 10, map player to an archetype and use archetype-based bluff baseline.
+*   **Deliverable:** Calibrated inference wrapper in `packages/ai/bluff_detector.py`.
+
+### 🔹 PHASE 4: Range-Aware Win Probability Engine
+*   **Goal:** Move from "Random Hands" to "Likely Hands".
+*   **Range Weighting Constraint:**
+    *   Use **Gaussian weighting** over hand strength instead of hard cutoffs.
+    *   Normalize weights so total probability = 1.
+    *   Sigma (σ) depends on player type: Nit (low σ / tight), Maniac (high σ / wide).
+*   **Method:** Position-adjusted weighted Monte Carlo simulation.
+
+### 🔹 PHASE 5: The Decision Engine (Core logic)
+*   **Goal:** Multi-factor EV calculation.
+*   **Calculations:**
+    1.  **Pot Odds:** `call_amount / (pot_size + call_amount)`.
+    2.  **Effective Win Prob:** `min(1.0, win_prob + bluff_prob * (1 - win_prob))`.
+    3.  **Fold Equity:** `bluff_prob * opponent_fold_tendency`.
+        *   `opponent_fold_tendency`: derived from historical fold frequency vs aggression; fallback default = 0.4.
+    4.  **EV_call:** `(effective_win_prob * pot_size) - ((1 - effective_win_prob) * call_amount)`.
+    5.  **Confidence:** `min(1.0, abs(effective_win_prob - pot_odds) * 2)`.
+*   **Decision Rule:** `If (EV_call > 0) OR (fold_equity > threshold) -> PLAY`.
+
+### 🔹 PHASE 6: Deep Explanation Engine
+*   **Goal:** Human-readable reasoning for "Why?".
+*   **Priority Order:**
+    1.  Bluff / behavioral signal.
+    2.  Pot odds vs win probability.
+    3.  Board texture / draws.
+*   **Reasoning Components:** Board texture, draw detection, and player-type narrative.
+
+### 🔹 PHASE 7: Dynamic Player Modeling
+*   **Goal:** Instant adaptation to "Hot/Cold" streaks.
+*   **Method:** Session-based stats + Bayesian updating of historical VPIP/PFR.
+
+### 🔹 PHASE 8: Real-Time Orchestration Layer
+*   **Goal:** Unified controller `analyze_situation`.
+*   **Latency Constraint:**
+    *   Max inference time: 200ms.
+    *   **Fallback:** Skip ML/Sequence features; use basic win_prob (vs random) and static bluff baseline.
+*   **Pipeline:** `GameState` ➡️ `Feature Extractor` ➡️ `Parallel (Bluff Model + Range Simulator)` ➡️ `Decision Engine` ➡️ `Explanation Generator`.
+
+### 🔹 PHASE 9: Intelligence API Layer
+*   **Goal:** High-performance endpoint for the frontend.
+*   **Endpoint:** `POST /analyze-state`
+*   **Response:** `{ win_prob, bluff_prob, action, confidence, explanation }`.
+
+### 🔹 PHASE 10: Validation & Stress Testing
+*   **Method:** Simulation-based testing and edge-case handling (All-in, first hand at table).
