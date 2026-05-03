@@ -8,18 +8,16 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
+# Copy requirements and packages first for better caching
 COPY requirements.txt .
+COPY packages/ packages/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code
+# Copy the rest of the application code
 COPY . .
-
-# Install the local domain package in editable mode for the container
-RUN pip install -e ./packages/domain
 
 # Expose the port FastAPI will run on
 EXPOSE 8000
 
-# Start command
-CMD ["uvicorn", "apps.api.interfaces.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start command with PORT variable support for Render
+CMD ["sh", "-c", "uvicorn apps.api.interfaces.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
