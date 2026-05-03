@@ -3,7 +3,7 @@ from packages.domain.models import GameState, Player, Pot
 from packages.domain.hand_evaluator import HandEvaluator, HandValue
 
 class ShowdownUseCase:
-    def execute(self, state: GameState) -> Dict:
+    def execute(self, state: GameState) -> Tuple[GameState, Dict]:
         # 1. Determine all pots based on contributions
         # Standard side pot logic
         pots = self._calculate_pots(state.players)
@@ -14,10 +14,12 @@ class ShowdownUseCase:
         player_hand_values = {}
         for i, player in enumerate(state.players):
             if not player.is_folded:
-                # In a real game, if community cards are missing, we should handle that.
-                # Assuming 5 community cards are present for showdown.
-                hand_value = HandEvaluator.evaluate_7_cards(player.hole_cards + state.community_cards)
-                player_hand_values[i] = hand_value
+                all_cards = player.hole_cards + state.community_cards
+                if len(all_cards) >= 5:
+                    hand_value = HandEvaluator.evaluate_7_cards(all_cards) if len(all_cards) >= 5 else None
+                    player_hand_values[i] = hand_value
+                else:
+                    player_hand_values[i] = None
 
         # 3. Distribute each pot
         for pot_idx, pot in enumerate(pots):
@@ -25,28 +27,34 @@ class ShowdownUseCase:
             eligible_winners = [idx for idx in pot.eligible_player_indices if not state.players[idx].is_folded]
             
             if not eligible_winners:
-                # If everyone eligible folded (shouldn't happen in standard poker as the last one wins)
-                # but let's handle it by giving it to the last folder? No, the pot should have been closed.
                 # Standard rule: the last remaining player wins everything.
-                # If everyone in a side pot folded, it goes to the remaining player.
                 remaining_players = [i for i, p in enumerate(state.players) if not p.is_folded]
                 if remaining_players:
                     winners = [remaining_players[0]]
-                    best_value = player_hand_values.get(winners[0])
                 else:
-                    continue # No one to give it to?
+                    continue 
             else:
                 # Find winners for this specific pot
                 best_value = None
                 winners = []
                 
-                for idx in eligible_winners:
-                    hand_value = player_hand_values[idx]
-                    if best_value is None or hand_value > best_value:
-                        best_value = hand_value
-                        winners = [idx]
-                    elif hand_value == best_value:
-                        winners.append(idx)
+                # If only one eligible winner (e.g. others folded), they win automatically
+                if len(eligible_winners) == 1:
+                    winners = [eligible_winners[0]]
+                else:
+                    for idx in eligible_winners:
+                        hand_value = player_hand_values.get(idx)
+                        if hand_value is None:
+                            # If we can't evaluate, and there are multiple players, this is an error state
+                            # but for now let's just pick one or handle it gracefully
+                            if not winners: winners = [idx]
+                            continue
+
+                        if best_value is None or hand_value > best_value:
+                            best_value = hand_value
+                            winners = [idx]
+                        elif hand_value == best_value:
+                            winners.append(idx)
             
             # Divide pot
             win_amount = pot.amount / len(winners)
@@ -57,13 +65,13 @@ class ShowdownUseCase:
                 "pot_index": pot_idx,
                 "amount": pot.amount,
                 "winners": [state.players[w_idx].name for w_idx in winners],
-                "hand_rank": best_value.rank.name if best_value else "N/A"
+                "hand_rank": player_hand_values[winners[0]].rank.name if winners and player_hand_values.get(winners[0]) else "N/A"
             })
             
         state.pot = 0
         state.pots = []
         
-        return {
+        return state, {
             "pots_results": results,
             "total_pot": sum(p.amount for p in pots)
         }

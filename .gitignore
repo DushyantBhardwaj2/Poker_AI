@@ -86,3 +86,6 @@ pytest_cache/
 ML modules/data/
 ML modules/poker-hand-histories/
 ML modules/poker-hand-histories.zip
+
+.gemini/
+gha-creds-*.json
