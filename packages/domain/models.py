@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import List, Optional
 from pydantic import BaseModel, Field
+import uuid
 
 class Suit(str, Enum):
     SPADES = "s"
@@ -42,14 +43,21 @@ class Action(BaseModel):
     action_type: ActionType
     amount: float = 0.0
 
+class PlayerStatus(str, Enum):
+    ACTIVE = "active"
+    FOLDED = "folded"
+    ALL_IN = "all-in"
+    SITTING_OUT = "sitting-out"
+
 class Player(BaseModel):
     name: str
     stack: float
     hole_cards: List[Card] = Field(default_factory=list)
     current_bet: float = 0.0
     total_contributed: float = 0.0
-    is_folded: bool = False
-    is_all_in: bool = False
+    is_folded: bool = False # Legacy - kept for compatibility
+    is_all_in: bool = False # Legacy - kept for compatibility
+    status: PlayerStatus = PlayerStatus.ACTIVE
     has_acted: bool = False
     vpip_this_hand: bool = False
     pfr_this_hand: bool = False
@@ -60,6 +68,20 @@ class GameRound(str, Enum):
     TURN = "turn"
     RIVER = "river"
     SHOWDOWN = "showdown"
+
+class ActionRecord(BaseModel):
+    player_name: str
+    action_type: ActionType
+    amount: float = 0.0
+    street: GameRound
+
+class GameSession(BaseModel):
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    players: List[Player] = Field(default_factory=list)
+    pot_size: float = 0.0
+    current_street: GameRound = GameRound.PRE_FLOP
+    actions_history: List[ActionRecord] = Field(default_factory=list)
 
 class HandRank(int, Enum):
     HIGH_CARD = 1
@@ -89,3 +111,20 @@ class GameState(BaseModel):
     round: GameRound = GameRound.PRE_FLOP
     small_blind: float
     big_blind: float
+
+class LiveGameState(BaseModel):
+    """
+    Inference-ready snapshot of a hand.
+    Combines core GameState with the necessary temporal and behavioral context for ML.
+    """
+    street: int # 1: Flop, 2: Turn, 3: River
+    bet_amount: float
+    pot_before: float
+    starting_stack: float
+    board_cards: List[str] 
+    vpip: float
+    pfr: float
+    prev_street_dryness: float = 1.0
+    prev_street_max_bet: float = 0.0
+    prev_action_bet_size: float = 0.0 # Relative (bet/pot)
+

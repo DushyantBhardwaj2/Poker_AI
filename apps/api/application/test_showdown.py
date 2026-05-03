@@ -32,7 +32,7 @@ class TestShowdown(unittest.TestCase):
             big_blind=20
         )
         
-        result = self.showdown_use_case.execute(state)
+        state, result = self.showdown_use_case.execute(state)
         
         self.assertEqual(result["pots_results"][0]["winners"], ["Alice"])
         self.assertEqual(state.players[0].stack, 200)
@@ -69,7 +69,7 @@ class TestShowdown(unittest.TestCase):
             big_blind=20
         )
         
-        result = self.showdown_use_case.execute(state)
+        state, result = self.showdown_use_case.execute(state)
         
         # Pot 0: 300 (Alice vs Bob vs Charlie). Alice wins with Aces.
         # Pot 1: 200 (Bob vs Charlie). Bob wins with Kings.
