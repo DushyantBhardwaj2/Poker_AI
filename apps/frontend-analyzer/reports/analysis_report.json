@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-05-03T09:32:01.419Z",
+  "frontendUrl": "http://localhost:4321",
+  "flowIssues": [],
+  "componentIssues": [],
+  "responsiveIssues": [],
+  "runtimeErrors": [],
+  "stateIssues": [],
+  "summary": {
+    "totalTests": 37,
+    "passed": 37,
+    "failed": 0,
+    "skipped": 0,
+    "criticalIssues": 0,
+    "mediumIssues": 0,
+    "lowIssues": 0,
+    "overallStatus": "healthy"
+  }
+}

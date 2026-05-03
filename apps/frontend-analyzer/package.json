@@ -1,0 +1,14 @@
+{
+  "name": "pokersense-frontend-analyzer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "analyze": "playwright test; node reporter/report-generator.js",
+    "test": "playwright test",
+    "install-browsers": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "typescript": "^5.4.5"
+  }
+}
