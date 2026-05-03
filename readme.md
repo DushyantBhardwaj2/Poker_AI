@@ -1,30 +1,67 @@
-# ♠️ PokerSense AI — Real-Time Poker Intelligence System
+# ♠️ PokerSense AI — AI Poker Advisor & Turn-Based Tracker
 
-PokerSense AI is a **real-time decision support system** designed to assist players during live poker games. Rather than just calculating math or serving as a post-game analytics dashboard, it combines mathematical probability, opponent behavioral modeling, and game logic to provide actionable, real-time advice with clear explanations.
+[![Deploy to Render](https://img.shields.io/badge/Deploy%20to-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://render.com)
+[![Deploy with Vercel](https://img.shields.io/badge/Deploy%20with-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
 
-## 1. What the System Is
-PokerSense AI acts like an expert poker coach sitting beside you. It tracks the game state, calculates odds on the fly, profiles opponents based on their betting patterns, and gives you a single, clear recommendation (Fold, Call, Raise) along with the reasoning behind it.
+**PokerSense AI** is a real-time poker intelligence system designed to provide high-speed, actionable advice during live gameplay. Rooted in David Sklansky's "The Theory of Poker," it synthesizes mathematical probability with behavioral analysis to deliver strategic recommendations.
 
-## 2. Key Components
-- **Win Probability Engine:** Uses Monte Carlo simulations to calculate your hand's mathematical equity against expected opponent ranges.
-- **Bluff Detection Model:** Analyzes opponent actions (bet sizing relative to pot, board texture, and player history) to predict the likelihood of a bluff.
-- **Decision Engine:** Merges win probability, pot odds, and bluff likelihood to generate an Expected Value (EV)-positive recommendation.
-- **Explanation Engine:** Translates complex EV calculations into human-readable advice (e.g., "Call: You have 3-to-1 pot odds, but a 40% chance of hitting your flush, making this a profitable call.").
-- **Player Modeling:** Continuously tracks opponent tendencies (VPIP, PFR, Aggression Frequency) and uses this data to adjust bluff detection and range estimation.
+## 🚀 Key Features
 
-## 3. How It Works
-1. **Game State Input:** You input your hole cards, community cards, pot size, and opponent actions via a fast, mobile-friendly UI.
-2. **Feature Extraction:** The system processes the raw game state into features (pot odds, board texture, opponent VPIP).
-3. **Probability & Bluff Modeling:** The AI runs win probability simulations and feeds the extracted features into the bluff detection model.
-4. **Decision Engine:** The AI computes the highest EV move based on the math and the behavioral models.
-5. **UI Output & Explanation:** The system presents the recommended action along with a clear, concise explanation of *why* you should make that move.
+- **Real-Time Bluff Detection**: Powered by an **XGBoost v3** model that analyzes betting patterns, board texture, and player history.
+- **Range-Aware Win Probability**: Monte Carlo simulations calculate equity against estimated opponent ranges.
+- **Smart Advisor HUD**: A tactical "Black and Gold" interface providing real-time EV-positive recommendations (Fold, Call, Raise).
+- **Explainable AI (XAI)**: Every move comes with a theoretical breakdown (Pot Odds, Implied Odds, Fundamental Theorem).
+- **Automated Side-Pot Resolution**: Complex multi-way all-ins and side pots are handled instantly by the backend.
+- **Cold-Start Resilience**: New opponents are seeded with table-averaged baselines for immediate inference accuracy.
 
-## 4. Use Cases
-- **Live Poker Assistance:** Get real-time advice on complex decisions during a live or online game.
-- **Decision Support:** Validate your instincts with mathematical and behavioral backing.
-- **Player Analysis:** Keep track of how specific opponents play over time, allowing the system to adapt its advice to exploit their weaknesses.
-- **Post-Game Coaching:** Review hands and understand the math and behavioral tells you might have missed.
+## 🏗️ Architecture
 
-## Tech Stack
-- **Frontend:** Astro (with React components), Tailwind CSS, strictly tailored for real-time mobile tracking.
-- **Backend/AI:** Python (FastAPI), SQLAlchemy, Scikit-Learn/PyTorch (for ML).
+- **Frontend**: Astro + React (Zustand State Management) - Hosted on **Vercel**.
+- **Backend**: FastAPI (Python) - Hosted on **Render**.
+- **Database**: PostgreSQL (Neon) with JSONB for flexible opponent profiling.
+- **ML Engine**: XGBoost for behavioral inference + Custom hand evaluation logic.
+
+## 🛠️ Installation & Setup
+
+### Local Development
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/DushyantBhardwaj2/Poker_AI.git
+   cd Poker_AI
+   ```
+
+2. **Backend Setup**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # venv\Scripts\activate on Windows
+   pip install -r requirements.txt
+   pip install -e ./packages/domain
+   ```
+
+3. **Frontend Setup**:
+   ```bash
+   cd apps/web
+   npm install
+   npm run dev
+   ```
+
+4. **Database Initialization**:
+   ```bash
+   python scripts/init_postgres.py
+   ```
+
+## 🌐 Deployment
+
+This repository is configured for automated deployment via GitHub Actions:
+
+- **API (Render)**: Automatically builds from the root `Dockerfile`.
+- **Web (Vercel)**: Automatically builds from the `apps/web` directory using the Astro preset.
+
+### Environment Variables Required:
+- `DATABASE_URL`: Your PostgreSQL connection string.
+- `GEMINI_API_KEY`: For AI-driven insights and automated repository maintenance.
+
+---
+
+*“The Fundamental Theorem of Poker: Every time you play a hand differently from the way you would have played it if you could see all your opponents' cards, they gain; and every time you play your hand the same way you would have played it if you could see all their cards, they lose.” — David Sklansky*
