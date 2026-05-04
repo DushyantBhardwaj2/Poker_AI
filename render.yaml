@@ -1,0 +1,29 @@
+services:
+  # FastAPI Backend (AI Intelligence Engine)
+  - type: web
+    name: pokersense-api
+    runtime: docker
+    plan: free
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Set to your Neon Postgres URL
+      - key: LOG_LEVEL
+        value: info
+      - key: PORT
+        value: 8000
+
+  # Astro Frontend (Advisor HUD)
+  - type: static
+    name: pokersense-web
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: apps/web/dist
+    envVars:
+      - key: PUBLIC_API_URL
+        fromService:
+          type: web
+          name: pokersense-api
+          property: host
