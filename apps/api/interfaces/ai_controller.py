@@ -142,6 +142,7 @@ async def analyze_bluff(
 from packages.ai.smart_advisor import SmartAdvisor
 
 @router.post("/analyze-full")
+@router.post("/analyze-full/")
 async def analyze_full(
     request: AnalyzeFullRequest,
     user_id: str = Header(..., alias="X-User-Id"),
