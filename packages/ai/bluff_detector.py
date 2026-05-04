@@ -36,7 +36,7 @@ class BluffDetector:
             raise
 
         self.feature_names = [
-...
+            'street', 'rel_bet_size', 'bet_spike', 'dryness', 'dryness_delta', 
             'bet_bin', 'vpip', 'pfr', 'spr', 'bet_size_diff', 
             'is_monotonic', 'range_miss', 'dryness_bet_interaction', 
             'vpip_bet_interaction', 'tightness_bet_interaction', 'agg_profile'
