@@ -1,5 +1,5 @@
 from typing import List
-from packages.domain.models import GameState, Player, GameRound, Pot
+from packages.domain.models import GameState, Player, GameRound, Pot, PlayerStatus
 from packages.domain.deck import Deck
 
 class StartGameUseCase:
