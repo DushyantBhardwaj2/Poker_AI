@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { XCircle, Target, Shield, Coins, Wallet, Plus, ChevronDown, UserMinus, UserPlus } from 'lucide-react';
-import type { GameState, ActionType } from '../lib/api';
+import type { GameState, ActionType, PlayerStatus } from '../lib/api';
 import { CardComponent } from './CardComponent';
 import { VirtualTable } from './VirtualTable';
 

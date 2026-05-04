@@ -13,15 +13,37 @@ import os
 app = FastAPI(title="PokerSense AI API")
 
 # Configure CORS for production
-origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+origins = []
+origins_raw = os.getenv("ALLOWED_ORIGINS", "")
+if origins_raw:
+    # Handle multiple origins, whitespace, and trailing slashes
+    origins = [o.strip().rstrip('/') for o in origins_raw.split(",") if o.strip()]
+
+# Always include common local development origins for ease of use
+dev_origins = [
+    "http://localhost:3000",
+    "http://localhost:4321",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:4321",
+    "http://127.0.0.1:5173",
+]
+for origin in dev_origins:
+    if origin not in origins:
+        origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*", "X-User-Id"],
 )
+
+# Health check endpoint for deployment
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
 
 app.include_router(game_router, prefix="/api/v1/game", tags=["game"])
 app.include_router(ai_router, prefix="/api/v1/ai", tags=["ai"])

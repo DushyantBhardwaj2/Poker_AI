@@ -53,14 +53,16 @@
 
 ## 🌐 Deployment
 
-This repository is configured for automated deployment via GitHub Actions:
-
-- **API (Render)**: Automatically builds from the root `Dockerfile`.
-- **Web (Vercel)**: Automatically builds from the `apps/web` directory using the Astro preset.
+For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ### Environment Variables Required:
-- `DATABASE_URL`: Your PostgreSQL connection string.
-- `GEMINI_API_KEY`: For AI-driven insights and automated repository maintenance.
+
+**Backend (FastAPI):**
+- `DATABASE_URL`: Your PostgreSQL connection string (e.g., Neon).
+- `ALLOWED_ORIGINS`: Comma-separated list of allowed frontend origins.
+
+**Frontend (Astro):**
+- `PUBLIC_API_URL`: The full URL of your deployed backend API.
 
 ---
 

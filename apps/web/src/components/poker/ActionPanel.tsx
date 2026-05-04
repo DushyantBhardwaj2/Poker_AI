@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { usePokerStore } from '../../stores/usePokerStore';
-import { PokerAPI } from '../../services/api';
+import { PokerAPI } from '../../lib/api';
 
 export default function ActionPanel() {
   const { players, activePlayerIndex, sessionId, updatePlayerAction, nextPlayer, setError } = usePokerStore();
