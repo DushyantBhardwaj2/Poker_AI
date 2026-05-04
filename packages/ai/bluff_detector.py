@@ -2,9 +2,13 @@ import os
 import joblib
 import pandas as pd
 import numpy as np
+import logging
 from typing import Optional
 from packages.domain.models import LiveGameState
 from .utils import calculate_dryness
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 class BluffDetector:
     """
@@ -17,13 +21,22 @@ class BluffDetector:
             current_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(os.path.dirname(current_dir))
             model_path = os.path.join(project_root, "ml_modules", "src", "models", "bluff_detector_showdown_v3.joblib")
-        
+
+        logger.info(f"Loading ML model from: {model_path}")
         if not os.path.exists(model_path):
-            raise FileNotFoundError(f"ML model not found at {model_path}. Please ensure training was successful.")
-            
-        self.model = joblib.load(model_path)
+            error_msg = f"ML model not found at {model_path}. Current working directory: {os.getcwd()}"
+            logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
+
+        try:
+            self.model = joblib.load(model_path)
+            logger.info("Successfully loaded ML model.")
+        except Exception as e:
+            logger.error(f"Failed to load joblib model: {e}")
+            raise
+
         self.feature_names = [
-            'street', 'rel_bet_size', 'bet_spike', 'dryness', 'dryness_delta', 
+...
             'bet_bin', 'vpip', 'pfr', 'spr', 'bet_size_diff', 
             'is_monotonic', 'range_miss', 'dryness_bet_interaction', 
             'vpip_bet_interaction', 'tightness_bet_interaction', 'agg_profile'

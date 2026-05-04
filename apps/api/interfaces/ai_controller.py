@@ -20,7 +20,12 @@ _bluff_detector = None
 def get_bluff_detector():
     global _bluff_detector
     if _bluff_detector is None:
-        _bluff_detector = BluffDetector()
+        try:
+            _bluff_detector = BluffDetector()
+        except Exception as e:
+            import logging
+            logging.error(f"Failed to initialize BluffDetector: {e}")
+            raise HTTPException(status_code=500, detail=f"ML Initialization Error: {str(e)}")
     return _bluff_detector
 
 def get_user_id(x_user_id: str = Header(..., alias="X-User-Id", description="User ID for multi-tenant isolation")):
