@@ -1,0 +1,46 @@
+---
+import '../styles/global.css';
+import { Sidebar } from '../components/Sidebar';
+import { ClientRouter } from 'astro:transitions';
+
+interface Props {
+  title?: string;
+}
+
+const { title = "PokerSense AI - Premium Poker Intelligence" } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <ClientRouter />
+  </head>
+  <body class="bg-charcoal-dark min-h-screen relative overflow-x-hidden text-cream selection:bg-gold/30">
+    <div class="noise-overlay"></div>
+    
+    <div class="flex min-h-screen">
+      <Sidebar client:load />
+
+      <main class="flex-1 lg:ml-72 flex flex-col items-center py-12 px-6 overflow-y-auto transition-all duration-500">
+        <div class="w-full max-w-7xl flex flex-col items-center justify-center relative z-10">
+          <slot />
+        </div>
+
+        <footer class="mt-20 pt-16 border-t border-white/5 w-full text-gold/20 text-[10px] font-black uppercase tracking-[0.4em] flex flex-col items-center gap-4">
+          <div class="flex items-center gap-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-terminal"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            <span>PokerSense OS v2.4 // THEORY DRIVEN</span>
+            <span class="w-1.5 h-1.5 bg-gold/10 rounded-full"></span>
+            <span>Strategic Support Active</span>
+          </div>
+          <div class="text-[8px] opacity-40 italic">"IF YOU MAKE THE BEST DECISIONS, THE MONEY WILL FOLLOW"</div>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>
