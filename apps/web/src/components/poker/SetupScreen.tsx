@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Plus, Play, Trash2 } from 'lucide-react';
 import { usePokerStore } from '../../stores/usePokerStore';
-import { PokerAPI } from '../../services/api';
+import { PokerAPI } from '../../lib/api';
 
 export default function SetupScreen({ onComplete }: { onComplete: () => void }) {
   const [players, setLocalPlayers] = useState([{ id: '1', name: '', stack: 1000 }]);
@@ -30,9 +30,8 @@ export default function SetupScreen({ onComplete }: { onComplete: () => void }) 
         throw new Error('Minimum 2 players required');
       }
 
-      // 1. Start Session
       const sessionRes = await PokerAPI.startSession();
-      const sessionId = sessionRes.data.session_id || crypto.randomUUID(); // Fallback if mock
+      const sessionId = sessionRes.session_id || crypto.randomUUID(); // Fallback if mock
       setSession(sessionId);
 
       // 2. Add Players

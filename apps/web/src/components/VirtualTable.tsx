@@ -1,6 +1,6 @@
 import React from 'react';
-import { User, Wallet, Coins, Target } from 'lucide-react';
-import type { GameState, Player, ActionType, Card } from '../lib/api';
+import { User, Wallet, Coins, Target, UserPlus, UserMinus, XCircle } from 'lucide-react';
+import type { GameState, Player, ActionType, Card, PlayerStatus } from '../lib/api';
 import { CardComponent } from './CardComponent';
 
 interface PlayerPodProps {

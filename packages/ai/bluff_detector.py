@@ -16,7 +16,7 @@ class BluffDetector:
             # packages/ai/bluff_detector.py -> packages/ai -> packages -> root
             current_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(os.path.dirname(current_dir))
-            model_path = os.path.join(project_root, "ML modules", "src", "models", "bluff_detector_showdown_v3.joblib")
+            model_path = os.path.join(project_root, "ml_modules", "src", "models", "bluff_detector_showdown_v3.joblib")
         
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"ML model not found at {model_path}. Please ensure training was successful.")
