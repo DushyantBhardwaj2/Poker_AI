@@ -11,7 +11,12 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements and packages first for better caching
 COPY requirements.txt .
 COPY packages/ packages/
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install dependencies in stages to prevent OOM on small build instances
+RUN pip install --no-cache-dir fastapi uvicorn pydantic sqlalchemy psycopg2-binary python-dotenv joblib
+RUN pip install --no-cache-dir pandas numpy scipy
+RUN pip install --no-cache-dir xgboost
+RUN pip install --no-cache-dir -e ./packages/domain
 
 # Copy the rest of the application code
 COPY . .
