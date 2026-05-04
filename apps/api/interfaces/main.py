@@ -31,18 +31,32 @@ dev_origins = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:4321",
     "http://127.0.0.1:5173",
+    "https://poker-ai-black.vercel.app",
 ]
 for origin in dev_origins:
     if origin not in origins:
         origins.append(origin)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*", "X-User-Id"],
-)
+# If "*" is in origins, we must set allow_credentials=False
+allow_all = "*" in origins
+if allow_all:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        # Allow Vercel preview deployments
+        allow_origin_regex=r"https://.*\.vercel\.app",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*", "X-User-Id"],
+    )
 
 # Health check endpoint for deployment
 @app.get("/health")
