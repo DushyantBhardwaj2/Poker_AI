@@ -4,13 +4,17 @@ from apps.api.interfaces.game_controller import router as game_router
 from apps.api.interfaces.ai_controller import router as ai_router
 from apps.api.interfaces.stats_controller import router as stats_router
 from packages.domain.database import Base, engine
-
-# Create tables
-Base.metadata.create_all(bind=engine)
-
 import os
 
 app = FastAPI(title="PokerSense AI API")
+
+@app.on_event("startup")
+def on_startup():
+    # Create tables
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Error creating database tables: {e}")
 
 # Configure CORS for production
 origins = []
