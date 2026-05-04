@@ -9,6 +9,8 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false # Set to your Neon Postgres URL
+      - key: ALLOWED_ORIGINS
+        value: "https://poker-ai-black.vercel.app"
       - key: LOG_LEVEL
         value: info
       - key: PORT
