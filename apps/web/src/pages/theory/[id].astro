@@ -1,0 +1,32 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import { TheoryPage } from '../../components/theory/TheoryPage';
+import { theoryData } from '../../components/theory/data';
+
+export async function getStaticPaths() {
+  const paths = theoryData.parts.flatMap(part => 
+    part.chapters.map(chapter => ({
+      params: { id: chapter.id },
+      props: { chapterId: chapter.id, title: chapter.title }
+    }))
+  );
+  return paths;
+}
+
+const { id } = Astro.params;
+const { chapterId, title } = Astro.props;
+---
+
+<MainLayout title={`${title} | Theory Mastery Course | PokerSense AI`}>
+  <div class="w-full min-h-[calc(100vh-160px)] md:h-[calc(100vh-160px)]">
+    <TheoryPage client:load chapterId={chapterId} />
+  </div>
+</MainLayout>
+
+<style is:global>
+  /* Ensure the theory page can scroll its own content if needed, 
+     but the MainLayout handles the main scroll */
+  .theory-page-container {
+    height: 100%;
+  }
+</style>
