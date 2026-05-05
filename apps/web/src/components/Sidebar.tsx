@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Home, Play, BookOpen, GraduationCap, Settings, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Play, BookOpen, GraduationCap, Settings, Menu, X, ChevronLeft, ChevronRight, LogIn } from 'lucide-react';
+import { SignedIn, SignedOut, UserButton } from "@neondatabase/auth/react";
 
 export const Sidebar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -59,6 +60,8 @@ export const Sidebar: React.FC = () => {
     { id: 'guide', label: 'Guide & Rules', icon: BookOpen, href: '/guide' },
     { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
   ];
+
+  const authNavItem = { id: 'auth', label: 'Sign In', icon: LogIn, href: '/auth/sign-in' };
 
   const isActive = (href: string) => {
     if (href === '/' && activePath === '/') return true;
@@ -130,7 +133,39 @@ export const Sidebar: React.FC = () => {
                 </a>
               );
             })}
+
+            <SignedOut>
+              <a
+                href={authNavItem.href}
+                onClick={() => setIsOpen(false)}
+                className={`
+                  w-full flex items-center gap-4 rounded-xl transition-all duration-300 group
+                  ${isCollapsed ? 'justify-center p-4' : 'px-6 py-4'}
+                  text-cream/40 hover:text-cream hover:bg-white/5 border border-transparent
+                `}
+                title={isCollapsed ? authNavItem.label : ''}
+              >
+                <authNavItem.icon size={20} className="group-hover:text-gold shrink-0" />
+                {!isCollapsed && (
+                  <span className="font-bold tracking-widest text-xs uppercase animate-fade-in whitespace-nowrap">{authNavItem.label}</span>
+                )}
+              </a>
+            </SignedOut>
           </nav>
+
+          <div className="mt-4 mb-8 flex justify-center">
+            <SignedIn>
+              <div className={`flex items-center gap-4 ${isCollapsed ? '' : 'w-full px-6 py-4 bg-white/5 rounded-xl border border-white/10'}`}>
+                <UserButton />
+                {!isCollapsed && (
+                  <div className="flex flex-col animate-fade-in">
+                    <span className="text-[10px] font-black text-gold uppercase tracking-tighter">Authenticated</span>
+                    <span className="text-[8px] text-cream/40 uppercase tracking-widest">Premium Access</span>
+                  </div>
+                )}
+              </div>
+            </SignedIn>
+          </div>
 
           {!isCollapsed && (
             <div className="mt-auto pt-8 border-t border-gold/5 animate-fade-in">
@@ -174,4 +209,3 @@ export const Sidebar: React.FC = () => {
     </>
   );
 };
-

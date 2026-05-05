@@ -7,25 +7,19 @@ from packages.domain.models import GameSession, ActionRecord, GameRound, ActionT
 from packages.domain.hand_evaluator import HandEvaluator
 from packages.domain.database import get_db
 from packages.domain.stats_repository import StatsRepository
+from apps.api.infrastructure.auth import get_current_user_id
 
 router = APIRouter()
 
 # In-memory store for game sessions
 active_sessions: Dict[str, GameSession] = {}
 
-def get_user_id(x_user_id: str = Header(..., alias="X-User-Id", description="User ID for multi-tenant isolation")):
-    try:
-        uuid.UUID(x_user_id)
-        return x_user_id
-    except ValueError:
-        return "4895a071-3647-4e88-9c45-9e0e247946db"
-
 class StartSessionRequest(BaseModel):
     pass
 
 @router.post("/session/start")
-async def start_session(user_id: str = Depends(get_user_id)):
-    session = GameSession(user_id=user_id)
+async def start_session(user_id: uuid.UUID = Depends(get_current_user_id)):
+    session = GameSession(user_id=str(user_id))
     active_sessions[session.session_id] = session
     return {"session_id": session.session_id}
 
@@ -35,9 +29,9 @@ class AddPlayerRequest(BaseModel):
     stack: float
 
 @router.post("/session/add_player")
-async def add_player(request: AddPlayerRequest, user_id: str = Depends(get_user_id)):
+async def add_player(request: AddPlayerRequest, user_id: uuid.UUID = Depends(get_current_user_id)):
     session = active_sessions.get(request.session_id)
-    if not session or session.user_id != user_id:
+    if not session or session.user_id != str(user_id):
         raise HTTPException(status_code=404, detail="Session not found")
     
     player = Player(name=request.player_name, stack=request.stack)
@@ -50,9 +44,9 @@ class DealCardsRequest(BaseModel):
     cards: List[Card]
 
 @router.post("/session/deal_cards")
-async def deal_cards(request: DealCardsRequest, user_id: str = Depends(get_user_id)):
+async def deal_cards(request: DealCardsRequest, user_id: uuid.UUID = Depends(get_current_user_id)):
     session = active_sessions.get(request.session_id)
-    if not session or session.user_id != user_id:
+    if not session or session.user_id != str(user_id):
         raise HTTPException(status_code=404, detail="Session not found")
     
     for player in session.players:
@@ -68,9 +62,9 @@ class RecordActionRequest(BaseModel):
     amount: float = 0.0
 
 @router.post("/session/record_action")
-async def record_action(request: RecordActionRequest, user_id: str = Depends(get_user_id), db: Session = Depends(get_db)):
+async def record_action(request: RecordActionRequest, user_id: uuid.UUID = Depends(get_current_user_id), db: Session = Depends(get_db)):
     session = active_sessions.get(request.session_id)
-    if not session or session.user_id != user_id:
+    if not session or session.user_id != str(user_id):
         raise HTTPException(status_code=404, detail="Session not found")
     
     # Update session state
@@ -101,7 +95,7 @@ async def record_action(request: RecordActionRequest, user_id: str = Depends(get
     repo = StatsRepository(db)
     
     # Track actions directly for features
-    opponent = repo.get_or_create_opponent(uuid.UUID(user_id), request.player_name)
+    opponent = repo.get_or_create_opponent(user_id, request.player_name)
     stats = opponent.stats
     features = dict(stats.dynamic_features) if stats.dynamic_features else {}
     
@@ -127,9 +121,9 @@ class NextStreetRequest(BaseModel):
     next_street: GameRound
 
 @router.post("/session/next_street")
-async def next_street(request: NextStreetRequest, user_id: str = Depends(get_user_id)):
+async def next_street(request: NextStreetRequest, user_id: uuid.UUID = Depends(get_current_user_id)):
     session = active_sessions.get(request.session_id)
-    if not session or session.user_id != user_id:
+    if not session or session.user_id != str(user_id):
         raise HTTPException(status_code=404, detail="Session not found")
     
     session.current_street = request.next_street
@@ -146,9 +140,9 @@ class SessionShowdownRequest(BaseModel):
     community_cards: List[Card]
 
 @router.post("/session/showdown")
-async def session_showdown(request: SessionShowdownRequest, user_id: str = Depends(get_user_id), db: Session = Depends(get_db)):
+async def session_showdown(request: SessionShowdownRequest, user_id: uuid.UUID = Depends(get_current_user_id), db: Session = Depends(get_db)):
     session = active_sessions.get(request.session_id)
-    if not session or session.user_id != user_id:
+    if not session or session.user_id != str(user_id):
         raise HTTPException(status_code=404, detail="Session not found")
     
     repo = StatsRepository(db)
@@ -178,7 +172,7 @@ async def session_showdown(request: SessionShowdownRequest, user_id: str = Depen
                 break
                 
         repo.update_player_stats(
-            user_id=uuid.UUID(user_id),
+            user_id=user_id,
             name=p_info.player_name,
             vpip_this_hand=vpip,
             pfr_this_hand=pfr,
@@ -209,7 +203,7 @@ class StatelessStartGameRequest(BaseModel):
     dealer_index: Optional[int] = 0
 
 @router.post("/start")
-async def stateless_start_game(request: StatelessStartGameRequest, user_id: str = Depends(get_user_id), db: Session = Depends(get_db)):
+async def stateless_start_game(request: StatelessStartGameRequest, user_id: uuid.UUID = Depends(get_current_user_id), db: Session = Depends(get_db)):
     repo = StatsRepository(db)
     
     # 1. Initialize/Fetch players to trigger cold-start logic if new
@@ -245,14 +239,13 @@ class StatelessShowdownRequest(BaseModel):
     bluffer_names: Optional[List[str]] = Field(default_factory=list)
 
 @router.post("/showdown")
-async def stateless_showdown(request: StatelessShowdownRequest, user_id: str = Depends(get_user_id), db: Session = Depends(get_db)):
+async def stateless_showdown(request: StatelessShowdownRequest, user_id: uuid.UUID = Depends(get_current_user_id), db: Session = Depends(get_db)):
     try:
         use_case = ShowdownUseCase()
         new_state, result = use_case.execute(request.state)
 
         # Update stats in database for ALL players involved in this hand
         repo = StatsRepository(db)
-        user_uuid = uuid.UUID(user_id) if not isinstance(user_id, uuid.UUID) else user_id
 
         # Extract winner results to identify potential bluffs if not explicitly provided
         pots_results = result.get("pots_results", [])
@@ -275,7 +268,7 @@ async def stateless_showdown(request: StatelessShowdownRequest, user_id: str = D
                         is_bluff = True
 
             repo.update_player_stats(
-                user_id=user_uuid,
+                user_id=user_id,
                 name=player.name,
                 vpip_this_hand=player.vpip_this_hand,
                 pfr_this_hand=player.pfr_this_hand,
@@ -288,4 +281,3 @@ async def stateless_showdown(request: StatelessShowdownRequest, user_id: str = D
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-

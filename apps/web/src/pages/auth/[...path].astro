@@ -1,0 +1,42 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import { AuthView } from "@neondatabase/auth/react";
+---
+
+<MainLayout title="Authentication - PokerSense AI">
+  <div class="w-full max-w-md mx-auto py-20">
+    <div class="mb-12 text-center">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-gold rounded-2xl shadow-gold mb-6">
+        <span class="text-charcoal font-black text-3xl">P</span>
+      </div>
+      <h1 class="text-3xl font-black tracking-widest text-gold uppercase mb-2">Access Portal</h1>
+      <p class="text-gold/40 text-xs tracking-[0.3em] uppercase font-bold">Secure Strategic Environment</p>
+    </div>
+
+    <div class="bg-charcoal border border-gold/10 p-1 shadow-2xl relative">
+      <div class="absolute -top-px -left-px w-8 h-px bg-gold"></div>
+      <div class="absolute -top-px -left-px w-px h-8 bg-gold"></div>
+      <div class="absolute -bottom-px -right-px w-8 h-px bg-gold"></div>
+      <div class="absolute -bottom-px -right-px w-px h-8 bg-gold"></div>
+      
+      <div class="p-8 border border-white/5">
+        <AuthView client:only="react" path="/auth/[...path]" />
+      </div>
+    </div>
+
+    <div class="mt-8 flex items-center justify-center gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-gold/20">
+      <span class="flex items-center gap-2">
+        <div class="w-1 h-1 bg-gold/20 rounded-full"></div>
+        Encrypted
+      </span>
+      <span class="flex items-center gap-2">
+        <div class="w-1 h-1 bg-gold/20 rounded-full"></div>
+        Verified
+      </span>
+      <span class="flex items-center gap-2">
+        <div class="w-1 h-1 bg-gold/20 rounded-full"></div>
+        Isolated
+      </span>
+    </div>
+  </div>
+</MainLayout>
