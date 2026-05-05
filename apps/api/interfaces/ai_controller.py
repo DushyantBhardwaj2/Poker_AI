@@ -11,6 +11,7 @@ from packages.ai.feature_mapper import FeatureMapper
 from packages.ai.bluff_detector import BluffDetector
 from packages.domain.stats_repository import StatsRepository
 from packages.domain.database import get_db
+from apps.api.infrastructure.auth import get_current_user_id
 
 router = APIRouter()
 
@@ -27,13 +28,6 @@ def get_bluff_detector():
             logging.error(f"Failed to initialize BluffDetector: {e}")
             raise HTTPException(status_code=500, detail=f"ML Initialization Error: {str(e)}")
     return _bluff_detector
-
-def get_user_id(x_user_id: str = Header(..., alias="X-User-Id", description="User ID for multi-tenant isolation")):
-    try:
-        uuid.UUID(x_user_id)
-        return x_user_id
-    except ValueError:
-        return "4895a071-3647-4e88-9c45-9e0e247946db"
 
 class WinProbRequest(BaseModel):
     hole_cards: List[Card]
@@ -100,14 +94,14 @@ async def profile_opponent(request: ProfileRequest):
 @router.post("/analyze-bluff")
 async def analyze_bluff(
     request: AnalyzeBluffRequest, 
-    user_id: str = Header(..., alias="X-User-Id"), 
+    user_id: uuid.UUID = Depends(get_current_user_id), 
     db: Session = Depends(get_db),
     detector: BluffDetector = Depends(get_bluff_detector)
 ):
     try:
         # 1. Fetch Opponent Stats from DB
         repo = StatsRepository(db)
-        opponent = repo.get_or_create_opponent(uuid.UUID(user_id), request.opponent_name)
+        opponent = repo.get_or_create_opponent(user_id, request.opponent_name)
         stats = opponent.stats
         
         features = stats.dynamic_features if stats else {}
@@ -145,7 +139,7 @@ from packages.ai.smart_advisor import SmartAdvisor
 @router.post("/analyze-full/")
 async def analyze_full(
     request: AnalyzeFullRequest,
-    user_id: str = Header(..., alias="X-User-Id"),
+    user_id: uuid.UUID = Depends(get_current_user_id),
     db: Session = Depends(get_db),
     detector: BluffDetector = Depends(get_bluff_detector)
 ):
@@ -161,7 +155,7 @@ async def analyze_full(
         
         # 2. Bluff Analysis (Behavior)
         repo = StatsRepository(db)
-        opponent = repo.get_or_create_opponent(uuid.UUID(user_id), request.opponent_name)
+        opponent = repo.get_or_create_opponent(user_id, request.opponent_name)
         stats = opponent.stats
         features = stats.dynamic_features if stats else {}
         hands = stats.hands_played if stats else 0

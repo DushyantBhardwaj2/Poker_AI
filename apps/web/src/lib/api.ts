@@ -120,24 +120,31 @@ const getBaseUrl = () => {
 
 const API_URL = getBaseUrl();
 
+import { getSessionToken } from './auth';
+
 // Internal helper for X-User-Id and other headers
-const getHeaders = () => {
+const getHeaders = async () => {
   const isBrowser = typeof window !== 'undefined';
   const defaultUserId = '4895a071-3647-4e88-9c45-9e0e247946db';
   
-  let userId = defaultUserId;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
   if (isBrowser) {
-    try {
-      userId = localStorage.getItem('user_id') || defaultUserId;
-    } catch (e) {
-      console.warn('Failed to access localStorage:', e);
+    const token = await getSessionToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      // Fallback for non-auth users/dev
+      const localUserId = localStorage.getItem('user_id');
+      headers['X-User-Id'] = localUserId || defaultUserId;
     }
+  } else {
+    headers['X-User-Id'] = defaultUserId;
   }
 
-  return {
-    'Content-Type': 'application/json',
-    'X-User-Id': userId
-  };
+  return headers;
 };
 
 async function handleResponse(res: Response) {
@@ -159,7 +166,7 @@ export async function startGame(
 ): Promise<GameState> {
   const res = await fetch(`${API_URL}/game/start`, {
     method: 'POST',
-    headers: getHeaders(),
+    headers: await getHeaders(),
     body: JSON.stringify({
       player_names: playerNames,
       initial_stacks: initialStacks,
@@ -174,7 +181,7 @@ export async function startGame(
 export async function processAction(state: GameState, action: Action): Promise<GameState> {
   const res = await fetch(`${API_URL}/game/action`, {
     method: 'POST',
-    headers: getHeaders(),
+    headers: await getHeaders(),
     body: JSON.stringify({ state, action }),
   });
   return handleResponse(res);
@@ -183,7 +190,7 @@ export async function processAction(state: GameState, action: Action): Promise<G
 export async function showdown(state: GameState, blufferNames: string[] = []): Promise<{ new_state: GameState; result: any }> {
   const res = await fetch(`${API_URL}/game/showdown`, {
     method: 'POST',
-    headers: getHeaders(),
+    headers: await getHeaders(),
     body: JSON.stringify({ state, bluffer_names: blufferNames }),
   });
   return handleResponse(res);
@@ -198,7 +205,7 @@ export async function analyzeFull(
 ): Promise<FullAnalysisResponse> {
   const res = await fetch(`${API_URL}/ai/analyze-full`, {
     method: 'POST',
-    headers: getHeaders(),
+    headers: await getHeaders(),
     body: JSON.stringify({
       state,
       history,
@@ -218,7 +225,7 @@ export async function getWinProbability(
 ): Promise<WinAnalysis> {
   const res = await fetch(`${API_URL}/ai/win-probability`, {
     method: 'POST',
-    headers: getHeaders(),
+    headers: await getHeaders(),
     body: JSON.stringify({
       hole_cards: holeCards,
       community_cards: communityCards,
@@ -232,7 +239,7 @@ export async function getWinProbability(
 export async function getAllStats(): Promise<Record<string, OpponentProfile & { total_hands: number }>> {
   const res = await fetch(`${API_URL}/stats`, {
     method: 'GET',
-    headers: getHeaders(),
+    headers: await getHeaders(),
   });
   return handleResponse(res);
 }
@@ -240,44 +247,45 @@ export async function getAllStats(): Promise<Record<string, OpponentProfile & { 
 // --- Session-based API (Object-style for compatibility) ---
 
 export const PokerAPI = {
-  startSession: () => 
-    fetch(`${API_URL}/game/session/start`, { method: 'POST', headers: getHeaders() }).then(handleResponse),
+  startSession: async () => 
+    fetch(`${API_URL}/game/session/start`, { method: 'POST', headers: await getHeaders() }).then(handleResponse),
   
-  addPlayer: (sessionId: string, playerName: string, stack: number) =>
+  addPlayer: async (sessionId: string, playerName: string, stack: number) =>
     fetch(`${API_URL}/game/session/add_player`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ session_id: sessionId, player_name: playerName, stack })
     }).then(handleResponse),
     
-  recordAction: (sessionId: string, playerName: string, actionType: string, amount: number) =>
+  recordAction: async (sessionId: string, playerName: string, actionType: string, amount: number) =>
     fetch(`${API_URL}/game/session/record_action`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ session_id: sessionId, player_name: playerName, action_type: actionType, amount })
     }).then(handleResponse),
     
-  nextStreet: (sessionId: string, nextStreet: string) =>
+  nextStreet: async (sessionId: string, nextStreet: string) =>
     fetch(`${API_URL}/game/session/next_street`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ session_id: sessionId, next_street: nextStreet })
     }).then(handleResponse),
     
-  showdown: (sessionId: string, payload: any) =>
+  showdown: async (sessionId: string, payload: any) =>
     fetch(`${API_URL}/game/session/showdown`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify({ session_id: sessionId, ...payload })
     }).then(handleResponse),
   
-  analyzeFull: (payload: any) => 
+  analyzeFull: async (payload: any) => 
     fetch(`${API_URL}/ai/analyze-full`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: await getHeaders(),
       body: JSON.stringify(payload)
     }).then(handleResponse),
   
-  getStats: () => 
-    fetch(`${API_URL}/stats`, { method: 'GET', headers: getHeaders() }).then(handleResponse)
+  getStats: async () => 
+    fetch(`${API_URL}/stats`, { method: 'GET', headers: await getHeaders() }).then(handleResponse)
 };
+

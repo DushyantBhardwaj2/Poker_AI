@@ -7,23 +7,17 @@ from packages.domain.database import get_db
 from packages.domain.stats_repository import StatsRepository
 from packages.ai.opponent_profiler import OpponentProfiler
 from packages.domain.db_models import Opponent, OpponentStats
+from apps.api.infrastructure.auth import get_current_user_id
 
 router = APIRouter()
 
-def get_user_id(x_user_id: str = Header(..., alias="X-User-Id", description="User ID for multi-tenant isolation")):
-    try:
-        uuid.UUID(x_user_id)
-        return x_user_id
-    except ValueError:
-        return "4895a071-3647-4e88-9c45-9e0e247946db"
-
 @router.get("/")
-def get_all_stats(user_id: str = Depends(get_user_id), db: Session = Depends(get_db)):
+def get_all_stats(user_id: uuid.UUID = Depends(get_current_user_id), db: Session = Depends(get_db)):
     repo = StatsRepository(db)
     try:
         # raw stats from repository
         raw_results = db.query(Opponent, OpponentStats).join(OpponentStats).filter(
-            Opponent.user_id == user_id
+            Opponent.user_id == str(user_id)
         ).all()
         
         enriched_stats = {}
@@ -64,22 +58,20 @@ class InitializePlayerRequest(BaseModel):
     active_player_names: List[str]
 
 @router.post("/initialize_player")
-def initialize_player(request: InitializePlayerRequest, user_id: str = Depends(get_user_id), db: Session = Depends(get_db)):
+def initialize_player(request: InitializePlayerRequest, user_id: uuid.UUID = Depends(get_current_user_id), db: Session = Depends(get_db)):
     repo = StatsRepository(db)
     try:
-        uid = uuid.UUID(user_id)
-        
         # Check if already exists
         opponent = db.query(Opponent).filter(
-            Opponent.user_id == user_id,
+            Opponent.user_id == str(user_id),
             Opponent.player_name == request.player_name
         ).first()
 
         if not opponent:
             # Step 7: Cold Start - get table averages
-            baseline_features = repo.get_table_averaged_baseline(uid, request.active_player_names)
+            baseline_features = repo.get_table_averaged_baseline(user_id, request.active_player_names)
             
-            opponent = Opponent(user_id=user_id, player_name=request.player_name)
+            opponent = Opponent(user_id=str(user_id), player_name=request.player_name)
             db.add(opponent)
             db.flush()
             

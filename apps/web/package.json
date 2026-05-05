@@ -12,6 +12,8 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@neondatabase/auth": "^0.3.0-beta",
+    "@neondatabase/neon-js": "^0.5.0-beta",
     "astro": "^6.2.1",
     "axios": "^1.16.0",
     "lucide-react": "^1.14.0",
