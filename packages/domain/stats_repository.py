@@ -13,8 +13,24 @@ class StatsRepository:
             return uuid.UUID(id_val)
         return id_val
 
+    def _ensure_user_exists(self, user_id: uuid.UUID):
+        user = self.db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            new_user = User(user_id=user_id, email=f"user-{str(user_id)[:8]}@pokersense.ai")
+            self.db.add(new_user)
+            try:
+                self.db.flush()
+            except Exception as e:
+                self.db.rollback()
+                # If flush fails, maybe another process created it?
+                user = self.db.query(User).filter(User.user_id == user_id).first()
+                if not user:
+                    raise e
+
     def get_or_create_opponent(self, user_id: uuid.UUID, player_name: str, active_table_names: Optional[List[str]] = None) -> Opponent:
         user_id = self._ensure_uuid(user_id)
+        self._ensure_user_exists(user_id)
+        
         opponent = self.db.query(Opponent).filter(
             Opponent.user_id == user_id,
             Opponent.player_name == player_name
