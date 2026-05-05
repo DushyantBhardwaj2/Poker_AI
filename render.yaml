@@ -9,6 +9,8 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false # Set to your Neon Postgres URL
+      - key: NEON_AUTH_URL
+        sync: false # Set to your Neon Auth URL
       - key: ALLOWED_ORIGINS
         value: "https://poker-ai-black.vercel.app"
       - key: LOG_LEVEL
@@ -29,3 +31,5 @@ services:
           type: web
           name: pokersense-api
           property: host
+      - key: PUBLIC_NEON_AUTH_URL
+        sync: false # Set to your Neon Auth URL
