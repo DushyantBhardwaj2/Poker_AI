@@ -31,3 +31,13 @@
   - The UI removes manual pot distribution entirely. Dealers only need to mark players as "SHOW" or "MUCK" and input the revealed hole cards.
   - The Python backend automatically evaluates all 5-card hands, determines the hierarchy, correctly computes side pots based on varying player stacks, and instantly returns the payouts.
   - Multi-winner split pots and complex side-pot resolutions are displayed dynamically in the `PostHandAnalysis` component, ensuring the tracking experience doesn't halt during complex multi-way all-ins.
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)

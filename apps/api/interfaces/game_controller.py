@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends, Header
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
-from packages.domain.models import GameSession, ActionRecord, GameRound, ActionType, Player, Card, GameState
+from packages.domain.models import GameSession, ActionRecord, GameRound, ActionType, Player, Card, GameState, HandRank
 from packages.domain.hand_evaluator import HandEvaluator
 from packages.domain.database import get_db
 from packages.domain.stats_repository import StatsRepository
@@ -246,39 +246,46 @@ class StatelessShowdownRequest(BaseModel):
 
 @router.post("/showdown")
 async def stateless_showdown(request: StatelessShowdownRequest, user_id: str = Depends(get_user_id), db: Session = Depends(get_db)):
-    use_case = ShowdownUseCase()
-    new_state, result = use_case.execute(request.state)
-    
-    # Update stats in database for ALL players involved in this hand
-    repo = StatsRepository(db)
-    user_uuid = uuid.UUID(user_id) if not isinstance(user_id, uuid.UUID) else user_id
-    
-    # Extract winner results to identify potential bluffs if not explicitly provided
-    pots_results = result.get("pots_results", [])
-    explicit_bluffers = request.bluffer_names or []
-    
-    for player in request.state.players:
-        # Detect bluff: 
-        # 1. Explicitly marked by frontend
-        # 2. Or reached showdown with a High Card and was NOT a winner (automatic heuristic)
-        is_bluff = player.name in explicit_bluffers
-        
-        if not is_bluff:
-            # Heuristic: Reached showdown with High Card but lost
-            hand_value = HandEvaluator.evaluate_7_cards(player.hole_cards + request.state.community_cards)
-            was_winner = any(player.name in pr["winners"] for pr in pots_results)
-            if hand_value.rank == HandRank.HIGH_CARD and not was_winner:
-                is_bluff = True
-        
-        repo.update_player_stats(
-            user_id=user_uuid,
-            name=player.name,
-            vpip_this_hand=player.vpip_this_hand,
-            pfr_this_hand=player.pfr_this_hand,
-            is_bluff=is_bluff
-        )
-            
-    return {"new_state": new_state.dict(), "result": result}
+    try:
+        use_case = ShowdownUseCase()
+        new_state, result = use_case.execute(request.state)
 
+        # Update stats in database for ALL players involved in this hand
+        repo = StatsRepository(db)
+        user_uuid = uuid.UUID(user_id) if not isinstance(user_id, uuid.UUID) else user_id
 
+        # Extract winner results to identify potential bluffs if not explicitly provided
+        pots_results = result.get("pots_results", [])
+        explicit_bluffers = request.bluffer_names or []
+
+        for player in request.state.players:
+            # Detect bluff: 
+            # 1. Explicitly marked by frontend
+            # 2. Or reached showdown with a High Card and was NOT a winner (automatic heuristic)
+            is_bluff = player.name in explicit_bluffers
+
+            if not is_bluff:
+                # Heuristic: Reached showdown with High Card but lost
+                all_cards = player.hole_cards + request.state.community_cards
+                if len(all_cards) >= 5:
+                    # Best hand from all available cards
+                    hand_value = HandEvaluator.evaluate_7_cards(all_cards)
+                    was_winner = any(player.name in pr["winners"] for pr in pots_results)
+                    if hand_value and hand_value.rank == HandRank.HIGH_CARD and not was_winner:
+                        is_bluff = True
+
+            repo.update_player_stats(
+                user_id=user_uuid,
+                name=player.name,
+                vpip_this_hand=player.vpip_this_hand,
+                pfr_this_hand=player.pfr_this_hand,
+                is_bluff=is_bluff
+            )
+
+        return {"new_state": new_state.dict(), "result": result}
+    except Exception as e:
+        print(f"Error in showdown: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
