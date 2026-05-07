@@ -2,16 +2,7 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 import { AuthUI } from '../../components/auth/AuthUI';
 
-export function getStaticPaths() {
-  return [
-    { params: { path: undefined } },
-    { params: { path: 'login' } },
-    { params: { path: 'signup' } },
-    { params: { path: 'sign-in' } },
-    { params: { path: 'sign-up' } },
-    { params: { path: 'reset-password' } },
-  ];
-}
+// Removed getStaticPaths for SSR deployment
 ---
 
 <MainLayout title="Authentication - PokerSense AI">

@@ -7,7 +7,9 @@ if (!authUrl) {
   console.warn("Neon Auth URL is not defined. Authentication will be disabled.");
 }
 
-export const authClient = createAuthClient(authUrl);
+export const authClient = createAuthClient(authUrl, {
+  baseURL: authUrl
+});
 
 /**
  * Helper to get the current session token for API calls
