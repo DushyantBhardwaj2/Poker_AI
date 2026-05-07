@@ -24,7 +24,7 @@
 **Current Status:** Priority 2 (ML & Frontend Integration) is 100% complete. The system is fully operational from database to UI.
 
 ## 4. Design Aesthetics & UX
-- **Premium Interface**: Dark-themed, high-contrast 'Black and Gold' aesthetic inspired by tactical HUDs.
+- **Advanced Interface**: Dark-themed, high-contrast 'Black and Gold' aesthetic inspired by tactical HUDs.
 - **Responsive & Tactile**: Full mobile support with optimized touch targets and tactile scale feedback on all interactive elements.
 - **Minimal Clicks**: Real-time updates and simplified input flows to keep pace with live gameplay.
 - **Automated Showdown & Pot Distribution**: 

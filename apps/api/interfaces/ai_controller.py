@@ -12,8 +12,11 @@ from packages.ai.bluff_detector import BluffDetector
 from packages.domain.stats_repository import StatsRepository
 from packages.domain.database import get_db
 from apps.api.infrastructure.auth import get_current_user_id
+from apps.api.infrastructure.logger import get_logger
+import structlog
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 # Global detector instance
 _bluff_detector = None
@@ -24,8 +27,7 @@ def get_bluff_detector():
         try:
             _bluff_detector = BluffDetector()
         except Exception as e:
-            import logging
-            logging.error(f"Failed to initialize BluffDetector: {e}")
+            logger.error("Failed to initialize BluffDetector", error=str(e))
             raise HTTPException(status_code=500, detail=f"ML Initialization Error: {str(e)}")
     return _bluff_detector
 
@@ -143,6 +145,10 @@ async def analyze_full(
     db: Session = Depends(get_db),
     detector: BluffDetector = Depends(get_bluff_detector)
 ):
+    # Bind context to the logger for this request
+    log = logger.bind(user_id=str(user_id), opponent_name=request.opponent_name)
+    log.info("Starting full analysis", round=request.state.round)
+
     try:
         # 1. Win Probability (Math)
         win_prob_result = WinProbabilityCalculator.calculate(
@@ -179,6 +185,8 @@ async def analyze_full(
             player_stack=active_player.stack
         )
         
+        log.info("Analysis complete", advice=advice["action"])
+        
         return {
             "win_analysis": win_prob_result,
             "bluff_analysis": bluff_result,
@@ -186,4 +194,5 @@ async def analyze_full(
             "opponent_profile": OpponentProfiler.profile(vpip, pfr)
         }
     except Exception as e:
+        log.error("Analysis failed", error=str(e))
         raise HTTPException(status_code=400, detail=str(e))

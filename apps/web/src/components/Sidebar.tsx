@@ -1,28 +1,56 @@
 import React, { useEffect, useState } from 'react';
-import { Home, Play, BookOpen, GraduationCap, Settings, Menu, X, ChevronLeft, ChevronRight, LogIn } from 'lucide-react';
-import { SignedIn, SignedOut, UserButton } from "@neondatabase/auth/react";
+import { Home, Play, BookOpen, GraduationCap, Settings, Menu, X, ChevronLeft, ChevronRight, LogIn, Target, LogOut, User } from 'lucide-react';
+import { authClient } from "../lib/auth";
 
-export const Sidebar: React.FC = () => {
+import { isAuthPath } from '../lib/auth-utils';
+
+interface SidebarProps {
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+  currentPath?: string;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  isCollapsed = false, 
+  onToggleCollapse,
+  currentPath = ''
+}) => {
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activePath, setActivePath] = useState('/');
+  const [activePath, setActivePath] = useState(currentPath);
   const [theoryMode, setTheoryMode] = useState(true);
+  
+  // PASSIVE AUTH: Fetch session manually to avoid hook-based redirects
+  const [user, setUser] = useState<any>(null);
+
+  const fetchSession = async () => {
+    if (!mounted) return;
+    try {
+      const { data: session } = await authClient.getSession();
+      setUser(session?.user || null);
+    } catch (err) {
+      // Passive fail
+    }
+  };
+
+  const handleLogout = async () => {
+    await authClient.signOut();
+    setUser(null);
+    window.location.href = '/auth/sign-in';
+  };
 
   useEffect(() => {
-    // Set initial path
-    setActivePath(window.location.pathname);
+    setMounted(true);
+    
+    // Sync if window available
+    if (typeof window !== 'undefined') {
+      setActivePath(window.location.pathname);
+    }
 
     // Sync theoryMode with localStorage
     const savedMode = localStorage.getItem('poker_theory_mode');
     if (savedMode !== null) {
       setTheoryMode(savedMode === 'true');
-    }
-
-    const savedCollapsed = localStorage.getItem('sidebar_collapsed');
-    if (savedCollapsed !== null) {
-      const collapsed = savedCollapsed === 'true';
-      setIsCollapsed(collapsed);
-      if (collapsed) document.body.classList.add('sidebar-collapsed');
     }
 
     // Listen for path changes (Astro View Transitions)
@@ -34,23 +62,25 @@ export const Sidebar: React.FC = () => {
     return () => document.removeEventListener('astro:after-swap', handlePageChange);
   }, []);
 
+  useEffect(() => {
+    if (mounted) {
+      fetchSession();
+    }
+  }, [mounted, activePath]);
+
+  // Update activePath when currentPath prop changes
+  useEffect(() => {
+    if (currentPath) {
+      setActivePath(currentPath);
+    }
+  }, [currentPath]);
+
   const toggleTheoryMode = () => {
     const newMode = !theoryMode;
     setTheoryMode(newMode);
     localStorage.setItem('poker_theory_mode', String(newMode));
     // Dispatch custom event so other components (like PokerTable) can react
     window.dispatchEvent(new CustomEvent('poker_theory_mode_change', { detail: { theoryMode: newMode } }));
-  };
-
-  const toggleCollapse = () => {
-    const newCollapsed = !isCollapsed;
-    setIsCollapsed(newCollapsed);
-    localStorage.setItem('sidebar_collapsed', String(newCollapsed));
-    if (newCollapsed) {
-      document.body.classList.add('sidebar-collapsed');
-    } else {
-      document.body.classList.remove('sidebar-collapsed');
-    }
   };
 
   const navItems = [
@@ -62,6 +92,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   const authNavItem = { id: 'auth', label: 'Sign In', icon: LogIn, href: '/auth/sign-in' };
+  const signupNavItem = { id: 'signup', label: 'Create Account', icon: Target, href: '/auth/sign-up' };
 
   const isActive = (href: string) => {
     if (href === '/' && activePath === '/') return true;
@@ -75,6 +106,7 @@ export const Sidebar: React.FC = () => {
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="lg:hidden fixed top-6 right-6 z-[60] bg-gold p-3 rounded-full text-charcoal shadow-gold active:scale-90 transition-transform"
+        aria-label="Toggle Menu"
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
@@ -87,7 +119,7 @@ export const Sidebar: React.FC = () => {
       `}>
         {/* Collapse Toggle Desktop */}
         <button 
-          onClick={toggleCollapse}
+          onClick={onToggleCollapse}
           className="hidden lg:flex absolute -right-4 top-10 w-8 h-8 bg-charcoal border border-gold/20 rounded-full items-center justify-center text-gold shadow-gold hover:bg-gold/10 transition-all z-[60]"
         >
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -134,37 +166,77 @@ export const Sidebar: React.FC = () => {
               );
             })}
 
-            <SignedOut>
-              <a
-                href={authNavItem.href}
-                onClick={() => setIsOpen(false)}
-                className={`
-                  w-full flex items-center gap-4 rounded-xl transition-all duration-300 group
-                  ${isCollapsed ? 'justify-center p-4' : 'px-6 py-4'}
-                  text-cream/40 hover:text-cream hover:bg-white/5 border border-transparent
-                `}
-                title={isCollapsed ? authNavItem.label : ''}
-              >
-                <authNavItem.icon size={20} className="group-hover:text-gold shrink-0" />
-                {!isCollapsed && (
-                  <span className="font-bold tracking-widest text-xs uppercase animate-fade-in whitespace-nowrap">{authNavItem.label}</span>
-                )}
-              </a>
-            </SignedOut>
+            {mounted && !user && (
+                <div className="pt-4 space-y-2">
+                  <a
+                    href={authNavItem.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`
+                      w-full flex items-center gap-4 rounded-xl transition-all duration-300 group
+                      ${isCollapsed ? 'justify-center p-4' : 'px-6 py-4'}
+                      ${isActive(authNavItem.href) ? 'bg-gold/10 text-gold' : 'text-cream/40 hover:text-cream hover:bg-white/5'}
+                      border border-transparent
+                    `}
+                    title={isCollapsed ? authNavItem.label : ''}
+                  >
+                    <authNavItem.icon size={20} className="group-hover:text-gold shrink-0" />
+                    {!isCollapsed && (
+                      <span className="font-bold tracking-widest text-xs uppercase animate-fade-in whitespace-nowrap">{authNavItem.label}</span>
+                    )}
+                  </a>
+                  <a
+                    href={signupNavItem.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`
+                      w-full flex items-center gap-4 rounded-xl transition-all duration-300 group
+                      ${isCollapsed ? 'justify-center p-4' : 'px-6 py-4'}
+                      ${isActive(signupNavItem.href) ? 'bg-gold/20 text-gold shadow-gold' : 'bg-gold/5 text-gold/60 hover:bg-gold/10 hover:text-gold'}
+                      border border-gold/10
+                    `}
+                    title={isCollapsed ? signupNavItem.label : ''}
+                  >
+                    <signupNavItem.icon size={20} className="shrink-0" />
+                    {!isCollapsed && (
+                      <span className="font-bold tracking-widest text-xs uppercase animate-fade-in whitespace-nowrap">{signupNavItem.label}</span>
+                    )}
+                  </a>
+                </div>
+            )}
           </nav>
 
           <div className="mt-4 mb-8 flex justify-center">
-            <SignedIn>
-              <div className={`flex items-center gap-4 ${isCollapsed ? '' : 'w-full px-6 py-4 bg-white/5 rounded-xl border border-white/10'}`}>
-                <UserButton />
-                {!isCollapsed && (
-                  <div className="flex flex-col animate-fade-in">
-                    <span className="text-[10px] font-black text-gold uppercase tracking-tighter">Authenticated</span>
-                    <span className="text-[8px] text-cream/40 uppercase tracking-widest">Premium Access</span>
+            {mounted && user && (
+                <div className={`flex flex-col gap-2 ${isCollapsed ? 'items-center' : 'w-full'}`}>
+                  <div className={`flex items-center gap-4 ${isCollapsed ? '' : 'w-full px-6 py-4 bg-white/5 rounded-xl border border-white/10'}`}>
+                    <div className="w-8 h-8 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shrink-0">
+                      <User size={16} />
+                    </div>
+                    {!isCollapsed && (
+                      <div className="flex flex-col animate-fade-in flex-1 overflow-hidden">
+                        <span className="text-[10px] font-black text-gold uppercase tracking-tighter truncate">
+                          {user?.email?.split('@')[0] || 'Authenticated'}
+                        </span>
+                        <span className="text-[8px] text-cream/40 uppercase tracking-widest">System Access</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </SignedIn>
+                  
+                  <button 
+                    onClick={handleLogout}
+                    className={`
+                      flex items-center gap-4 rounded-xl transition-all duration-300 group
+                      ${isCollapsed ? 'justify-center p-4' : 'px-6 py-3'}
+                      text-red-500/60 hover:text-red-500 hover:bg-red-500/5 border border-transparent
+                    `}
+                    title={isCollapsed ? 'Logout' : ''}
+                  >
+                    <LogOut size={18} className="shrink-0" />
+                    {!isCollapsed && (
+                      <span className="font-bold tracking-widest text-[10px] uppercase animate-fade-in">Sign Out</span>
+                    )}
+                  </button>
+                </div>
+            )}
           </div>
 
           {!isCollapsed && (

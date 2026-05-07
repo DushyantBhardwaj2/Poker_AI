@@ -9,7 +9,10 @@ from packages.domain.database import get_db
 from packages.domain.stats_repository import StatsRepository
 from apps.api.infrastructure.auth import get_current_user_id
 
+from apps.api.infrastructure.logger import get_logger
+
 router = APIRouter()
+logger = get_logger(__name__)
 
 # In-memory store for game sessions
 active_sessions: Dict[str, GameSession] = {}
@@ -277,7 +280,5 @@ async def stateless_showdown(request: StatelessShowdownRequest, user_id: uuid.UU
 
         return {"new_state": new_state.dict(), "result": result}
     except Exception as e:
-        print(f"Error in showdown: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error("Error in showdown", error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

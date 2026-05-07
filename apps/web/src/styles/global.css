@@ -119,13 +119,13 @@
 }
 
 /* Button effects */
-.btn-premium {
+.btn-tactical {
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
-.btn-premium::before {
+.btn-tactical::before {
   content: '';
   position: absolute;
   top: 0;
@@ -136,12 +136,12 @@
   transition: left 0.5s ease;
 }
 
-.btn-premium:hover::before {
+.btn-tactical:hover::before {
   left: 100%;
 }
 
 /* Input focus effects */
-.input-premium:focus {
+.input-tactical:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3);
 }

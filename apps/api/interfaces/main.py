@@ -1,20 +1,30 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from asgi_correlation_id import CorrelationIdMiddleware
 from apps.api.interfaces.game_controller import router as game_router
 from apps.api.interfaces.ai_controller import router as ai_router
 from apps.api.interfaces.stats_controller import router as stats_router
+from apps.api.infrastructure.logger import setup_logging, get_logger
 from packages.domain.database import Base, engine
 import os
 
+# Initialize structured logging
+setup_logging()
+logger = get_logger(__name__)
+
 app = FastAPI(title="PokerSense AI API")
+
+# Add Correlation ID Middleware
+app.add_middleware(CorrelationIdMiddleware)
 
 @app.on_event("startup")
 def on_startup():
     # Create tables
     try:
         Base.metadata.create_all(bind=engine)
+        logger.info("Database tables verified/created successfully")
     except Exception as e:
-        print(f"Error creating database tables: {e}")
+        logger.error("Error creating database tables", error=str(e))
 
 # Configure CORS for production
 origins = []
@@ -26,9 +36,11 @@ if origins_raw:
 # Always include common local development origins for ease of use
 dev_origins = [
     "http://localhost:3000",
+    "http://localhost:4231",
     "http://localhost:4321",
     "http://localhost:5173",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:4231",
     "http://127.0.0.1:4321",
     "http://127.0.0.1:5173",
     "https://poker-ai-black.vercel.app",

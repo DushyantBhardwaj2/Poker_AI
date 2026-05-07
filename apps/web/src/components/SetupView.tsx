@@ -56,7 +56,7 @@ export const SetupView: React.FC<SetupViewProps> = ({
           <h1 className="text-4xl font-bold text-white tracking-tight">
             PokerSense <span className="text-gold">AI</span>
           </h1>
-          <p className="text-cream/60 text-sm font-medium tracking-wide">ELITE SESSION TRACKER</p>
+          <p className="text-cream/60 text-sm font-medium tracking-wide">TACTICAL SESSION TRACKER</p>
         </div>
 
         <div className="space-y-6 relative">
@@ -135,7 +135,7 @@ export const SetupView: React.FC<SetupViewProps> = ({
           <button 
             onClick={onStart}
             disabled={loading || playerNames.some(n => !n.trim())}
-            className="btn-premium w-full py-5 bg-gradient-to-r from-gold-dark via-gold to-gold-light text-charcoal-dark rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all shadow-gold active:scale-[0.98] disabled:opacity-50 mt-4"
+            className="btn-tactical w-full py-5 bg-gradient-to-r from-gold-dark via-gold to-gold-light text-charcoal-dark rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all shadow-gold active:scale-[0.98] disabled:opacity-50 mt-4"
           >
             {loading ? <RefreshCw className="animate-spin" /> : <Play size={22} fill="currentColor" />}
             INITIATE SESSION

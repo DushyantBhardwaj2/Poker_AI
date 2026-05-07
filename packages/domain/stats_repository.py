@@ -46,6 +46,7 @@ class StatsRepository:
             
             stats = OpponentStats(
                 opponent_id=opponent.opponent_id,
+                hands_played=10 if features else 0,
                 dynamic_features=features if features else default_dynamic_features()
             )
             self.db.add(stats)
@@ -68,6 +69,8 @@ class StatsRepository:
         features = dict(stats.dynamic_features) if stats.dynamic_features else default_dynamic_features()
         
         # SQL-style updates for core counts
+        if stats.hands_played is None:
+            stats.hands_played = 0
         stats.hands_played += 1
         
         # JSONB-style updates for ML features
@@ -106,8 +109,9 @@ class StatsRepository:
         count = len(results)
         
         def get_stat(r, key):
-            val = r.dynamic_features.get(key, 0)
-            return val / max(1, r.hands_played)
+            val = (r.dynamic_features.get(key, 0) if r.dynamic_features else 0) or 0
+            hands = r.hands_played if r.hands_played is not None else 0
+            return val / max(1, hands)
 
         avg_vpip = sum(get_stat(r, "vpip_count") for r in results) / count
         avg_pfr = sum(get_stat(r, "pfr_count") for r in results) / count
@@ -130,17 +134,17 @@ class StatsRepository:
         
         result = {}
         for opp, stats in results:
-            hands = stats.hands_played
-            features = stats.dynamic_features
+            hands = stats.hands_played if stats.hands_played is not None else 0
+            features = stats.dynamic_features if stats.dynamic_features else {}
             
-            vpip = features.get("vpip_count", 0) / hands if hands > 0 else 0
-            pfr = features.get("pfr_count", 0) / hands if hands > 0 else 0
+            vpip = (features.get("vpip_count", 0) or 0) / hands if hands > 0 else 0
+            pfr = (features.get("pfr_count", 0) or 0) / hands if hands > 0 else 0
             
             result[opp.player_name] = {
                 "total_hands": hands,
                 "vpip": vpip,
                 "pfr": pfr,
-                "bluffs": features.get("strict_bluff_showdowns", 0)
+                "bluffs": features.get("strict_bluff_showdowns", 0) or 0
             }
         return result
 

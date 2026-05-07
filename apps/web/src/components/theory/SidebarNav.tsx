@@ -26,7 +26,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ data, activeChapterId, o
           </div>
           <div className="flex items-center gap-2 mt-2">
             <div className="px-1.5 py-0.5 rounded bg-charcoal-light border border-white/5">
-              <span className="text-[10px] text-gold font-mono font-bold tracking-widest uppercase">Premium_Access</span>
+              <span className="text-[10px] text-gold font-mono font-bold tracking-widest uppercase">Deep_Analysis</span>
             </div>
             <div className="flex-1 h-[1px] bg-white/5" />
           </div>
