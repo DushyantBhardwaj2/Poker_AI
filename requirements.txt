@@ -11,4 +11,6 @@ joblib
 scipy
 structlog
 asgi_correlation_id
+httpx
+python-jose[cryptography]
 -e ./packages/domain
