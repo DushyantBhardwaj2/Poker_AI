@@ -14,7 +14,7 @@ COPY requirements.txt .
 COPY packages/ packages/
 
 # Install dependencies in stages to prevent OOM on small build instances
-RUN pip install --no-cache-dir fastapi uvicorn pydantic sqlalchemy psycopg2-binary python-dotenv joblib structlog asgi_correlation_id
+RUN pip install --no-cache-dir fastapi uvicorn pydantic sqlalchemy psycopg2-binary python-dotenv joblib structlog asgi_correlation_id httpx "python-jose[cryptography]"
 RUN pip install --no-cache-dir pandas numpy scipy
 RUN pip install --no-cache-dir xgboost
 RUN pip install --no-cache-dir -e ./packages/domain
