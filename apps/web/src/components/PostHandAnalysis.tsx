@@ -91,7 +91,7 @@ export const PostHandAnalysis: React.FC<PostHandAnalysisProps> = ({ showdownResu
 
         <button 
           onClick={onNewHand}
-          className="w-full btn-premium py-5 bg-gold text-charcoal-dark rounded-2xl font-black uppercase tracking-[0.2em] shadow-gold-strong flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] mt-4"
+          className="w-full btn-tactical py-5 bg-gold text-charcoal-dark rounded-2xl font-black uppercase tracking-[0.2em] shadow-gold-strong flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] mt-4"
         >
           <RefreshCw size={18} /> New Hand
         </button>

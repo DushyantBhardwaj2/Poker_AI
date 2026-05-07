@@ -141,7 +141,7 @@ export const CardInputView: React.FC<CardInputViewProps> = ({
         <button 
           onClick={onConfirm}
           disabled={isConfirmDisabled}
-          className="flex-[2] btn-premium py-4 bg-gradient-to-r from-gold-dark to-gold text-charcoal-dark rounded-xl font-black text-base sm:text-lg flex items-center justify-center gap-2 transition-all shadow-gold disabled:opacity-30 active:scale-[0.98]"
+          className="flex-[2] btn-tactical py-4 bg-gradient-to-r from-gold-dark to-gold text-charcoal-dark rounded-xl font-black text-base sm:text-lg flex items-center justify-center gap-2 transition-all shadow-gold disabled:opacity-30 active:scale-[0.98]"
         >
           <CheckCircle2 size={20} /> CONFIRM {pickingFor === 'community' && round ? round.toUpperCase() : 'SELECTION'}
         </button>

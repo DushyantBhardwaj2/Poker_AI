@@ -8,28 +8,12 @@ services:
     dockerfilePath: Dockerfile
     envVars:
       - key: DATABASE_URL
-        sync: false # Set to your Neon Postgres URL
+        sync: false # Set to: postgresql://neondb_owner:npg_vzC9hRsWLT0c@ep-empty-sea-amb5bkwo-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - key: NEON_AUTH_URL
         sync: false # Set to your Neon Auth URL
       - key: ALLOWED_ORIGINS
-        value: "https://poker-ai-black.vercel.app"
+        value: "https://poker-ai-black.vercel.app,https://poker-5c5z8kj23-dushyant2.vercel.app"
       - key: LOG_LEVEL
         value: info
       - key: PORT
         value: 8000
-
-  # Astro Frontend (Advisor HUD)
-  - type: static
-    name: pokersense-web
-    runtime: node
-    plan: free
-    buildCommand: npm install && npm run build
-    staticPublishPath: apps/web/dist
-    envVars:
-      - key: PUBLIC_API_URL
-        fromService:
-          type: web
-          name: pokersense-api
-          property: host
-      - key: PUBLIC_NEON_AUTH_URL
-        sync: false # Set to your Neon Auth URL

@@ -103,13 +103,7 @@ const getBaseUrl = () => {
   
   // 2. Browser-aware fallback
   if (typeof window !== 'undefined') {
-    // If we're on localhost but no API URL is set, assume the default dev backend
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return 'http://localhost:8000/api/v1';
-    }
-
-    // PROD ALERT: In production (non-localhost), if no PUBLIC_API_URL is set, 
-    // we fallback to a relative path assuming a proxy or same-domain deploy.
+    // We prefer relative paths in the browser to leverage Vite proxy and avoid CORS
     return '/api/v1';
   }
 
@@ -122,10 +116,12 @@ const API_URL = getBaseUrl();
 
 import { getSessionToken } from './auth';
 
-// Internal helper for X-User-Id and other headers
+/**
+ * Internal helper for Authorization and other headers.
+ * Enforces session token requirement in the browser.
+ */
 const getHeaders = async () => {
   const isBrowser = typeof window !== 'undefined';
-  const defaultUserId = '4895a071-3647-4e88-9c45-9e0e247946db';
   
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -136,12 +132,10 @@ const getHeaders = async () => {
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     } else {
-      // Fallback for non-auth users/dev
-      const localUserId = localStorage.getItem('user_id');
-      headers['X-User-Id'] = localUserId || defaultUserId;
+      // In a production environment, we might want to redirect here,
+      // but for now we'll throw an error that the caller can handle.
+      throw new Error('AUTHENTICATION_REQUIRED');
     }
-  } else {
-    headers['X-User-Id'] = defaultUserId;
   }
 
   return headers;

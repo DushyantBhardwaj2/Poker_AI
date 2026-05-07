@@ -1,42 +1,103 @@
 ---
-import MainLayout from '../layouts/MainLayout.astro';
-import { AuthView } from "@neondatabase/auth/react";
+import MainLayout from '../../layouts/MainLayout.astro';
+import { AuthUI } from '../../components/auth/AuthUI';
+
+export function getStaticPaths() {
+  return [
+    { params: { path: undefined } },
+    { params: { path: 'login' } },
+    { params: { path: 'signup' } },
+    { params: { path: 'sign-in' } },
+    { params: { path: 'sign-up' } },
+    { params: { path: 'reset-password' } },
+  ];
+}
 ---
 
 <MainLayout title="Authentication - PokerSense AI">
-  <div class="w-full max-w-md mx-auto py-20">
-    <div class="mb-12 text-center">
-      <div class="inline-flex items-center justify-center w-16 h-16 bg-gold rounded-2xl shadow-gold mb-6">
-        <span class="text-charcoal font-black text-3xl">P</span>
+  <div class="w-full min-h-[70vh] flex items-center justify-center py-12 px-4">
+    <div class="w-full max-w-lg">
+      <!-- Tactical Header -->
+      <div class="mb-12 text-center relative">
+        <div class="absolute inset-0 flex items-center justify-center opacity-5">
+          <span class="text-[120px] font-black tracking-tighter text-gold select-none uppercase italic">System</span>
+        </div>
+        
+        <div class="relative z-10">
+          <div class="inline-flex items-center justify-center w-20 h-20 bg-gold rounded-2xl shadow-gold-strong mb-8 group transition-transform hover:scale-105 duration-500">
+            <span class="text-charcoal font-black text-4xl">P</span>
+          </div>
+          
+          <div class="space-y-3">
+            <h1 class="text-4xl font-black tracking-[0.3em] text-gold uppercase mb-2">Access Portal</h1>
+            <div class="flex items-center justify-center gap-4">
+              <div class="h-px w-8 bg-gold/20"></div>
+              <p class="text-gold/60 text-[10px] tracking-[0.4em] uppercase font-black">Strategic Environment v2.4</p>
+              <div class="h-px w-8 bg-gold/20"></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <h1 class="text-3xl font-black tracking-widest text-gold uppercase mb-2">Access Portal</h1>
-      <p class="text-gold/40 text-xs tracking-[0.3em] uppercase font-bold">Secure Strategic Environment</p>
-    </div>
 
-    <div class="bg-charcoal border border-gold/10 p-1 shadow-2xl relative">
-      <div class="absolute -top-px -left-px w-8 h-px bg-gold"></div>
-      <div class="absolute -top-px -left-px w-px h-8 bg-gold"></div>
-      <div class="absolute -bottom-px -right-px w-8 h-px bg-gold"></div>
-      <div class="absolute -bottom-px -right-px w-px h-8 bg-gold"></div>
-      
-      <div class="p-8 border border-white/5">
-        <AuthView client:only="react" path="/auth/[...path]" />
+      <!-- Auth Container -->
+      <div class="relative group">
+        <!-- Decorative Glow -->
+        <div class="absolute -inset-4 bg-gold/5 rounded-[40px] blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+        
+        <div class="bg-charcoal-dark border border-gold/20 p-1 shadow-2xl relative z-10 overflow-hidden rounded-sm">
+          <!-- Tactical Corners -->
+          <div class="absolute top-0 left-0 w-12 h-12">
+            <div class="absolute top-0 left-0 w-full h-px bg-gold/40"></div>
+            <div class="absolute top-0 left-0 w-px h-full bg-gold/40"></div>
+          </div>
+          <div class="absolute top-0 right-0 w-12 h-12">
+            <div class="absolute top-0 right-0 w-full h-px bg-gold/40"></div>
+            <div class="absolute top-0 right-0 w-px h-full bg-gold/40"></div>
+          </div>
+          <div class="absolute bottom-0 left-0 w-12 h-12">
+            <div class="absolute bottom-0 left-0 w-full h-px bg-gold/40"></div>
+            <div class="absolute bottom-0 left-0 w-px h-full bg-gold/40"></div>
+          </div>
+          <div class="absolute bottom-0 right-0 w-12 h-12">
+            <div class="absolute bottom-0 right-0 w-full h-px bg-gold/40"></div>
+            <div class="absolute bottom-0 right-0 w-px h-full bg-gold/40"></div>
+          </div>
+
+          <!-- Scanning Line Animation -->
+          <div class="absolute top-0 left-0 w-full h-1 bg-gold/10 blur-sm animate-[scan_4s_linear_infinite] z-20"></div>
+          
+          <div class="p-10 border border-white/5 bg-charcoal/50 backdrop-blur-xl relative overflow-hidden">
+            <AuthUI client:load />
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="mt-8 flex items-center justify-center gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-gold/20">
-      <span class="flex items-center gap-2">
-        <div class="w-1 h-1 bg-gold/20 rounded-full"></div>
-        Encrypted
-      </span>
-      <span class="flex items-center gap-2">
-        <div class="w-1 h-1 bg-gold/20 rounded-full"></div>
-        Verified
-      </span>
-      <span class="flex items-center gap-2">
-        <div class="w-1 h-1 bg-gold/20 rounded-full"></div>
-        Isolated
-      </span>
+      <!-- Security Status -->
+      <div class="mt-12 grid grid-cols-3 gap-4">
+        {[
+          { label: 'Encryption', status: 'AES-256' },
+          { label: 'Isolation', status: 'MULTI-TENANT' },
+          { label: 'Latency', status: '< 45MS' }
+        ].map((item) => (
+          <div class="flex flex-col items-center p-4 border border-white/5 bg-white/[0.02] rounded-lg">
+            <span class="text-[8px] text-gold/30 uppercase tracking-widest font-black mb-1">{item.label}</span>
+            <span class="text-[10px] text-gold/80 font-mono tracking-wider">{item.status}</span>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-8 flex items-center justify-center gap-6 text-[9px] font-black uppercase tracking-[0.3em] text-gold/20 italic text-center">
+        <span>Verified Identity Required for Full Intelligence Access</span>
+      </div>
     </div>
   </div>
 </MainLayout>
+
+<style>
+  @keyframes scan {
+    0% { transform: translateY(-100px); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(600px); opacity: 0; }
+  }
+</style>

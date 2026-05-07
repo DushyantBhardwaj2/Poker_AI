@@ -22,14 +22,14 @@ def get_all_stats(user_id: uuid.UUID = Depends(get_current_user_id), db: Session
         
         enriched_stats = {}
         for opp, stats in raw_results:
-            hands = stats.hands_played
+            hands = stats.hands_played if stats.hands_played is not None else 0
             features = stats.dynamic_features or {}
             
-            vpip_count = features.get("vpip_count", 0)
-            pfr_count = features.get("pfr_count", 0)
-            bluffs = features.get("strict_bluff_showdowns", 0)
-            agg_ip = features.get("aggression_ip", 0.0)
-            agg_oop = features.get("aggression_oop", 0.0)
+            vpip_count = features.get("vpip_count", 0) or 0
+            pfr_count = features.get("pfr_count", 0) or 0
+            bluffs = features.get("strict_bluff_showdowns", 0) or 0
+            agg_ip = features.get("aggression_ip", 0.0) or 0.0
+            agg_oop = features.get("aggression_oop", 0.0) or 0.0
             
             vpip = vpip_count / hands if hands > 0 else 0.0
             pfr = pfr_count / hands if hands > 0 else 0.0
@@ -42,9 +42,12 @@ def get_all_stats(user_id: uuid.UUID = Depends(get_current_user_id), db: Session
             
             enriched_stats[opp.player_name] = {
                 "hands_played": hands,
+                "vpip": vpip,
+                "pfr": pfr,
                 "vpip_percentage": round(vpip * 100, 2),
                 "pfr_percentage": round(pfr * 100, 2),
                 "aggression_score": round(aggression_score, 2),
+                "agg_freq": aggression_score,  # For frontend compatibility
                 "bluff_frequency": round(bluff_frequency, 2),
                 "classification": profile["classification"],
                 "description": profile["description"]
@@ -78,7 +81,7 @@ def initialize_player(request: InitializePlayerRequest, user_id: uuid.UUID = Dep
             # Initialize with table averages
             stats = OpponentStats(
                 opponent_id=opponent.opponent_id,
-                hands_played=1, # Give it 1 hand so math works without zero division
+                hands_played=10, # Match the 10-hand seed in baseline_features
                 dynamic_features=baseline_features
             )
             db.add(stats)
