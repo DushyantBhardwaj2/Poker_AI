@@ -12,6 +12,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/vercel": "^10.0.6",
     "@neondatabase/auth": "^0.3.0-beta",
     "@neondatabase/neon-js": "^0.5.0-beta",
     "astro": "^6.2.1",
