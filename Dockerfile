@@ -13,11 +13,8 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 COPY packages/ packages/
 
-# Install dependencies in stages to prevent OOM on small build instances
-RUN pip install --no-cache-dir fastapi uvicorn pydantic sqlalchemy psycopg2-binary python-dotenv joblib structlog asgi_correlation_id httpx "python-jose[cryptography]"
-RUN pip install --no-cache-dir pandas numpy scipy
-RUN pip install --no-cache-dir xgboost
-RUN pip install --no-cache-dir -e ./packages/domain
+# Install dependencies from requirements.txt (includes PyJWT[crypto], pandas, numpy, scipy, xgboost)
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY . .
