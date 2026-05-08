@@ -1,17 +1,21 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
-import { AuthUI } from '../../components/auth/AuthUI';
+import { LoginForm } from '../../components/auth/LoginForm';
+import { SignupForm } from '../../components/auth/SignupForm';
 
-// Removed getStaticPaths for SSR deployment
+const { path } = Astro.params;
+const isSignup = path?.includes('signup') || path?.includes('sign-up');
 ---
 
-<MainLayout title="Authentication - PokerSense AI">
+<MainLayout title={`${isSignup ? 'Register' : 'Login'} - PokerSense AI`}>
   <div class="w-full min-h-[70vh] flex items-center justify-center py-12 px-4">
     <div class="w-full max-w-lg">
       <!-- Tactical Header -->
       <div class="mb-12 text-center relative">
         <div class="absolute inset-0 flex items-center justify-center opacity-5">
-          <span class="text-[120px] font-black tracking-tighter text-gold select-none uppercase italic">System</span>
+          <span class="text-[120px] font-black tracking-tighter text-gold select-none uppercase italic">
+            {isSignup ? 'Register' : 'Access'}
+          </span>
         </div>
         
         <div class="relative z-10">
@@ -20,7 +24,9 @@ import { AuthUI } from '../../components/auth/AuthUI';
           </div>
           
           <div class="space-y-3">
-            <h1 class="text-4xl font-black tracking-[0.3em] text-gold uppercase mb-2">Access Portal</h1>
+            <h1 class="text-4xl font-black tracking-[0.3em] text-gold uppercase mb-2">
+              {isSignup ? 'Identity Provisioning' : 'Access Portal'}
+            </h1>
             <div class="flex items-center justify-center gap-4">
               <div class="h-px w-8 bg-gold/20"></div>
               <p class="text-gold/60 text-[10px] tracking-[0.4em] uppercase font-black">Strategic Environment v2.4</p>
@@ -58,7 +64,7 @@ import { AuthUI } from '../../components/auth/AuthUI';
           <div class="absolute top-0 left-0 w-full h-1 bg-gold/10 blur-sm animate-[scan_4s_linear_infinite] z-20"></div>
           
           <div class="p-10 border border-white/5 bg-charcoal/50 backdrop-blur-xl relative overflow-hidden">
-            <AuthUI client:load />
+            {isSignup ? <SignupForm client:load /> : <LoginForm client:load />}
           </div>
         </div>
       </div>

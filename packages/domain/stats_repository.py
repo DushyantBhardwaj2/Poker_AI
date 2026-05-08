@@ -13,19 +13,27 @@ class StatsRepository:
             return uuid.UUID(id_val)
         return id_val
 
-    def _ensure_user_exists(self, user_id: uuid.UUID):
+    def _ensure_user_exists(self, user_id: uuid.UUID, email: Optional[str] = None, name: Optional[str] = None):
         user = self.db.query(User).filter(User.user_id == user_id).first()
         if not user:
-            new_user = User(user_id=user_id, email=f"user-{str(user_id)[:8]}@pokersense.ai")
+            new_user = User(
+                user_id=user_id, 
+                email=email if email else f"user-{str(user_id)[:8]}@pokersense.ai",
+                name=name
+            )
             self.db.add(new_user)
             try:
                 self.db.flush()
             except Exception as e:
                 self.db.rollback()
-                # If flush fails, maybe another process created it?
                 user = self.db.query(User).filter(User.user_id == user_id).first()
                 if not user:
                     raise e
+        elif email or name:
+            # Update existing user if info provided
+            if email: user.email = email
+            if name: user.name = name
+            self.db.flush()
 
     def get_or_create_opponent(self, user_id: uuid.UUID, player_name: str, active_table_names: Optional[List[str]] = None) -> Opponent:
         user_id = self._ensure_uuid(user_id)
