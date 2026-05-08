@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { authClient } from '../../lib/auth';
+import { authClient, isAuthEnabled } from '../../lib/auth';
 import { isAuthPath } from '../../lib/auth-utils';
-import { Mail, Lock, LogIn, UserPlus, AlertCircle, ArrowRight } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, AlertCircle, ArrowRight, Settings } from 'lucide-react';
 
 interface AuthUIProps {
   initialView?: 'login' | 'signup';
@@ -16,6 +16,10 @@ export const AuthUI: React.FC<AuthUIProps> = ({ initialView = 'login' }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isAuthEnabled) {
+      setError("AUTHENTICATION SYSTEM OFFLINE: PUBLIC_NEON_AUTH_URL is not configured. Please check environment variables.");
+    }
+    
     const path = window.location.pathname;
     if (path.includes('signup') || path.includes('sign-up')) {
       setView('signup');
@@ -26,6 +30,8 @@ export const AuthUI: React.FC<AuthUIProps> = ({ initialView = 'login' }) => {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthEnabled) return;
+    
     setLoading(true);
     setError(null);
     try {
@@ -75,6 +81,8 @@ export const AuthUI: React.FC<AuthUIProps> = ({ initialView = 'login' }) => {
   };
 
   const handleGoogleLogin = async () => {
+    if (!isAuthEnabled) return;
+    
     setLoading(true);
     try {
       await authClient.signIn.social({
@@ -89,11 +97,23 @@ export const AuthUI: React.FC<AuthUIProps> = ({ initialView = 'login' }) => {
 
   return (
     <div className="space-y-8">
+      {!isAuthEnabled && (
+        <div className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-xl space-y-3 mb-6">
+          <div className="flex items-center gap-3 text-amber-500">
+            <Settings className="animate-spin-slow" size={20} />
+            <span className="font-black uppercase tracking-widest text-xs">Configuration Required</span>
+          </div>
+          <p className="text-[10px] text-amber-200/60 leading-relaxed font-medium">
+            The authentication service is currently detached. Ensure <code className="text-amber-500 font-bold">PUBLIC_NEON_AUTH_URL</code> is set in your environment variables to enable the Access Portal.
+          </p>
+        </div>
+      )}
+
       {/* Social Login */}
       <button
         onClick={handleGoogleLogin}
-        disabled={loading}
-        className="w-full py-4 bg-gold/5 hover:bg-gold/10 border border-gold/20 rounded-xl font-black flex items-center justify-center gap-3 transition-all active:scale-[0.98] group relative overflow-hidden"
+        disabled={loading || !isAuthEnabled}
+        className="w-full py-4 bg-gold/5 hover:bg-gold/10 border border-gold/20 rounded-xl font-black flex items-center justify-center gap-3 transition-all active:scale-[0.98] group relative overflow-hidden disabled:opacity-30 disabled:cursor-not-allowed"
       >
         <div className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
         <svg className="w-5 h-5 relative z-10 transition-transform group-hover:scale-110" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -122,7 +142,8 @@ export const AuthUI: React.FC<AuthUIProps> = ({ initialView = 'login' }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-charcoal/50 border border-gold/10 rounded-xl py-4 pl-12 pr-4 text-cream focus:border-gold/50 focus:ring-1 focus:ring-gold/20 transition-all outline-none font-mono text-sm"
+              disabled={!isAuthEnabled}
+              className="w-full bg-charcoal/50 border border-gold/10 rounded-xl py-4 pl-12 pr-4 text-cream focus:border-gold/50 focus:ring-1 focus:ring-gold/20 transition-all outline-none font-mono text-sm disabled:opacity-30"
               placeholder="operator@poker-sense.ai"
             />
           </div>
@@ -137,7 +158,8 @@ export const AuthUI: React.FC<AuthUIProps> = ({ initialView = 'login' }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full bg-charcoal/50 border border-gold/10 rounded-xl py-4 pl-12 pr-4 text-cream focus:border-gold/50 focus:ring-1 focus:ring-gold/20 transition-all outline-none font-mono text-sm"
+              disabled={!isAuthEnabled}
+              className="w-full bg-charcoal/50 border border-gold/10 rounded-xl py-4 pl-12 pr-4 text-cream focus:border-gold/50 focus:ring-1 focus:ring-gold/20 transition-all outline-none font-mono text-sm disabled:opacity-30"
               placeholder="••••••••••••"
             />
           </div>
@@ -148,31 +170,34 @@ export const AuthUI: React.FC<AuthUIProps> = ({ initialView = 'login' }) => {
           <button
             type="button"
             onClick={() => setRememberMe(!rememberMe)}
+            disabled={!isAuthEnabled}
             className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
               rememberMe ? 'bg-gold border-gold' : 'border-gold/20 hover:border-gold/40'
-            }`}
+            } disabled:opacity-30`}
           >
             {rememberMe && <div className="w-2 h-2 bg-charcoal rounded-[1px]" />}
           </button>
           <span 
-            className="text-[9px] font-black uppercase tracking-[0.1em] text-gold/60 cursor-pointer select-none"
-            onClick={() => setRememberMe(!rememberMe)}
+            className="text-[9px] font-black uppercase tracking-[0.1em] text-gold/60 cursor-pointer select-none disabled:opacity-30"
+            onClick={() => isAuthEnabled && setRememberMe(!rememberMe)}
           >
             Maintain Tactical Persistence
           </span>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-start gap-3 animate-shake">
-            <AlertCircle className="text-red-500 shrink-0" size={18} />
-            <p className="text-xs text-red-500 font-medium">{error}</p>
+          <div className={`border p-4 rounded-xl flex items-start gap-3 animate-shake ${
+            !isAuthEnabled ? 'bg-amber-500/10 border-amber-500/20' : 'bg-red-500/10 border-red-500/20'
+          }`}>
+            <AlertCircle className={!isAuthEnabled ? 'text-amber-500' : 'text-red-500'} size={18} />
+            <p className={`text-xs font-medium ${!isAuthEnabled ? 'text-amber-200/80' : 'text-red-500'}`}>{error}</p>
           </div>
         )}
 
         <button
           type="submit"
-          disabled={loading}
-          className="w-full btn-tactical py-5 bg-gold text-charcoal-dark rounded-xl font-black uppercase tracking-[0.2em] shadow-gold-strong flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50"
+          disabled={loading || !isAuthEnabled}
+          className="w-full btn-tactical py-5 bg-gold text-charcoal-dark rounded-xl font-black uppercase tracking-[0.2em] shadow-gold-strong flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-charcoal-dark/20 border-t-charcoal-dark rounded-full animate-spin"></div>
@@ -189,12 +214,14 @@ export const AuthUI: React.FC<AuthUIProps> = ({ initialView = 'login' }) => {
       <div className="text-center pt-4">
         <button
           onClick={() => {
+            if (!isAuthEnabled) return;
             const nextView = view === 'login' ? 'signup' : 'login';
             const nextPath = nextView === 'login' ? 'sign-in' : 'sign-up';
             setView(nextView);
             window.history.pushState({}, '', `/auth/${nextPath}`);
           }}
-          className="text-[10px] font-black uppercase tracking-[0.2em] text-gold/40 hover:text-gold transition-colors inline-flex items-center gap-2 group"
+          disabled={!isAuthEnabled}
+          className="text-[10px] font-black uppercase tracking-[0.2em] text-gold/40 hover:text-gold transition-colors inline-flex items-center gap-2 group disabled:opacity-30"
         >
           {view === 'login' ? "Don't have an account?" : "Already registered?"}
           <span className="text-gold underline underline-offset-4 decoration-gold/20 group-hover:decoration-gold transition-all">

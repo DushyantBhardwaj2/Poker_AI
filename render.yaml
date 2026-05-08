@@ -12,7 +12,7 @@ services:
       - key: NEON_AUTH_URL
         sync: false # Set to your Neon Auth URL
       - key: ALLOWED_ORIGINS
-        value: "https://poker-ai-black.vercel.app,https://poker-5c5z8kj23-dushyant2.vercel.app,https://web-rho-jade-22.vercel.app"
+        value: "https://poker-g23cvv44r-dushyant2.vercel.app"
       - key: LOG_LEVEL
         value: info
       - key: PORT

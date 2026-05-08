@@ -43,7 +43,7 @@ dev_origins = [
     "http://127.0.0.1:4231",
     "http://127.0.0.1:4321",
     "http://127.0.0.1:5173",
-    "https://poker-ai-black.vercel.app",
+    "https://poker-g23cvv44r-dushyant2.vercel.app",
 ]
 for origin in dev_origins:
     if origin not in origins:

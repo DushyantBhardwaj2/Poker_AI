@@ -7,7 +7,7 @@ export default defineConfig({
   output: 'server',
   adapter: vercel({
     webAnalytics: {
-      enabled: true,
+      enabled: false, // Set to true only after enabling in Vercel Dashboard
     },
   }),
   integrations: [

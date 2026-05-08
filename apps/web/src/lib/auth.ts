@@ -1,22 +1,33 @@
 import { createAuthClient } from "@neondatabase/auth";
 
-// VITE_NEON_AUTH_URL should be set in .env
-const authUrl = import.meta.env.PUBLIC_NEON_AUTH_URL || import.meta.env.VITE_NEON_AUTH_URL;
+// PUBLIC_NEON_AUTH_URL should be set in .env or provider environment variables
+const authUrl = import.meta.env.PUBLIC_NEON_AUTH_URL || import.meta.env.VITE_NEON_AUTH_URL || "";
 
-if (!authUrl) {
-  console.warn("Neon Auth URL is not defined. Authentication will be disabled.");
+export const isAuthEnabled = Boolean(authUrl && authUrl.startsWith('http'));
+
+if (!isAuthEnabled) {
+  if (typeof window !== 'undefined') {
+    console.warn("⚠️ PokerSense Auth Warning: PUBLIC_NEON_AUTH_URL is not defined or invalid.");
+    console.warn("Authentication features will be non-functional until configured in the environment.");
+  }
 }
 
-export const authClient = createAuthClient(authUrl, {
-  baseURL: authUrl
+// Better-Auth based client
+export const authClient = createAuthClient(authUrl || "https://placeholder-auth.neon.tech", {
+  baseURL: authUrl || undefined
 });
 
 /**
  * Helper to get the current session token for API calls
  */
 export async function getSessionToken(): Promise<string | null> {
-  const { data: session } = await authClient.getSession();
-  return session?.session?.token || null;
+  if (!isAuthEnabled) return null;
+  try {
+    const { data: session } = await authClient.getSession();
+    return session?.session?.token || null;
+  } catch (err) {
+    return null;
+  }
 }
 
 /**

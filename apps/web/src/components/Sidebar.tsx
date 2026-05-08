@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Home, Play, BookOpen, GraduationCap, Settings, Menu, X, ChevronLeft, ChevronRight, LogIn, Target, LogOut, User } from 'lucide-react';
-import { authClient } from "../lib/auth";
+import { authClient, isAuthEnabled } from "../lib/auth";
 
 import { isAuthPath } from '../lib/auth-utils';
 
@@ -24,7 +24,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [user, setUser] = useState<any>(null);
 
   const fetchSession = async () => {
-    if (!mounted) return;
+    if (!mounted || !isAuthEnabled) {
+      if (!isAuthEnabled && mounted) {
+        setUser({ id: 'guest', email: 'guest@poker-sense.ai' });
+      }
+      return;
+    }
+    
     try {
       const { data: session } = await authClient.getSession();
       setUser(session?.user || null);
