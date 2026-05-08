@@ -204,6 +204,8 @@ class StatelessStartGameRequest(BaseModel):
     small_blind: float
     big_blind: float
     dealer_index: Optional[int] = 0
+    sb_index: Optional[int] = -1
+    bb_index: Optional[int] = -1
 
 @router.post("/start")
 async def stateless_start_game(request: StatelessStartGameRequest, user_id: uuid.UUID = Depends(get_current_user_id), db: Session = Depends(get_db)):
@@ -220,7 +222,9 @@ async def stateless_start_game(request: StatelessStartGameRequest, user_id: uuid
         request.initial_stacks,
         request.small_blind,
         request.big_blind,
-        request.dealer_index
+        request.dealer_index,
+        request.sb_index,
+        request.bb_index
     )
     return state.dict()
 
