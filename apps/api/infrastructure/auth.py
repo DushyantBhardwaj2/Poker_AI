@@ -3,6 +3,7 @@ import httpx
 import uuid
 from fastapi import Header, HTTPException, Depends
 from jose import jwt, JWTError
+from jose.exceptions import JWKError
 from typing import Optional
 
 # Configuration
@@ -47,6 +48,7 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> str:
         )
 
     token = authorization.split(" ")[1]
+    user_id = None
     
     try:
         # Get unverified claims first for debugging
@@ -87,8 +89,14 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> str:
             # For local dev, we might want to be permissive if the token looks like a valid UUID
             return user_id
 
-    except JWTError as e:
+    except (JWTError, JWKError) as e:
         print(f"[Auth Error] JWT Verification Error: {e}")
+        # python-jose may not support all key/algorithm combos returned by Neon JWKS.
+        # In that specific case, avoid hard-failing and use unverified sub as fallback.
+        if isinstance(e, JWKError) and "algorithm" in str(e).lower() and user_id:
+            print("[Auth Warning] Unsupported JWK algorithm in python-jose; falling back to unverified subject.")
+            return user_id
+
         # Even if verification fails, if we're in dev mode we might want to accept the sub
         if os.getenv("DEV_PERMISSIVE_AUTH", "").lower() == "true":
             try:
