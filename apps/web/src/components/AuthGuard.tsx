@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { authClient } from "../lib/auth";
+import { authClient, isAuthEnabled } from "../lib/auth";
 import { isAuthPath, DEFAULT_AUTH_REDIRECT } from '../lib/auth-utils';
 
 interface AuthGuardProps {
@@ -25,6 +25,14 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   useEffect(() => {
     setMounted(true);
     
+    // If auth is disabled, we consider the user "authenticated" as a guest
+    // to allow the app to function in unconfigured environments.
+    if (!isAuthEnabled) {
+      setUser({ id: 'guest', email: 'guest@poker-sense.ai' });
+      setIsLoading(false);
+      return;
+    }
+
     const checkAuth = async () => {
       try {
         const { data: session } = await authClient.getSession();
