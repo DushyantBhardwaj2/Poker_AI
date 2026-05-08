@@ -18,8 +18,9 @@ import { CommunityCardsInput } from './CommunityCardsInput';
 import { ActionTracker } from './ActionTracker';
 import { AIDashboard } from './AIDashboard';
 import { ShowdownLogicView } from './ShowdownLogicView';
+import { HandSetupView } from './HandSetupView';
 
-type GameView = 'setup' | 'cards' | 'tracker';
+type GameView = 'setup' | 'cards' | 'tracker' | 'hand-setup';
 
 export default function PokerTable() {
   const [gameView, setGameView] = useState<GameView>('setup');
@@ -34,6 +35,12 @@ export default function PokerTable() {
   const [playerNames, setPlayerNames] = useState<string[]>(['You', 'Player 2', 'Player 3']);
   const [initialStack, setInitialStack] = useState(1000);
   const [bigBlind, setBigBlind] = useState(20);
+
+  // Hand Setup State
+  const [handSetupPlayers, setHandSetupPlayers] = useState<{name: string, stack: number}[]>([]);
+  const [manualDealer, setManualDealer] = useState(0);
+  const [manualSB, setManualSB] = useState(1);
+  const [manualBB, setManualBB] = useState(2);
 
   // Card Selection State
   const [selectedCards, setSelectedCards] = useState<Card[]>([]);
@@ -120,9 +127,30 @@ export default function PokerTable() {
       let dIdx = 0;
 
       if (isNextHand && gameState) {
-        names = gameState.players.map(p => p.name);
-        stacks = gameState.players.map(p => p.stack);
-        dIdx = (gameState.dealer_index + 1) % gameState.players.length;
+        // Preparation for Hand Setup View
+        const setupPlayers = gameState.players.map(p => ({ 
+          name: p.name, 
+          stack: p.stack 
+        }));
+        
+        const nextDIdx = (gameState.dealer_index + 1) % setupPlayers.length;
+        
+        setHandSetupPlayers(setupPlayers);
+        setManualDealer(nextDIdx);
+        
+        // Default blinds rotation
+        const num = setupPlayers.length;
+        if (num === 2) {
+          setManualSB(nextDIdx);
+          setManualBB((nextDIdx + 1) % num);
+        } else {
+          setManualSB((nextDIdx + 1) % num);
+          setManualBB((nextDIdx + 2) % num);
+        }
+        
+        setGameView('hand-setup');
+        setLoading(false);
+        return;
       }
 
       const state = await startGame(names, stacks, bigBlind / 2, bigBlind, dIdx);
@@ -135,6 +163,50 @@ export default function PokerTable() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const confirmHandSetup = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const names = handSetupPlayers.map(p => p.name);
+      const stacks = handSetupPlayers.map(p => p.stack);
+      
+      const state = await startGame(
+        names, 
+        stacks, 
+        bigBlind / 2, 
+        bigBlind, 
+        manualDealer,
+        manualSB,
+        manualBB
+      );
+      
+      setGameState(state);
+      setPickingFor('hole');
+      setSelectedCards([]);
+      setGameView('cards');
+    } catch (err: any) {
+      setError(err.message || "Failed to start hand.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSwapPlayers = (idx1: number, idx2: number) => {
+    const newPlayers = [...handSetupPlayers];
+    [newPlayers[idx1], newPlayers[idx2]] = [newPlayers[idx2], newPlayers[idx1]];
+    setHandSetupPlayers(newPlayers);
+    
+    // Also adjust indices if they were swapped
+    if (manualDealer === idx1) setManualDealer(idx2);
+    else if (manualDealer === idx2) setManualDealer(idx1);
+    
+    if (manualSB === idx1) setManualSB(idx2);
+    else if (manualSB === idx2) setManualSB(idx1);
+    
+    if (manualBB === idx1) setManualBB(idx2);
+    else if (manualBB === idx2) setManualBB(idx1);
   };
 
   const handleCardSelect = (card: Card) => {
@@ -376,6 +448,21 @@ export default function PokerTable() {
               initialStack={initialStack} setInitialStack={setInitialStack}
               bigBlind={bigBlind} setBigBlind={setBigBlind}
               loading={loading} onStart={initGame}
+            />
+          )}
+
+          {gameView === 'hand-setup' && (
+            <HandSetupView 
+              players={handSetupPlayers}
+              dealerIndex={manualDealer}
+              smallBlindIndex={manualSB}
+              bigBlindIndex={manualBB}
+              onUpdateDealer={setManualDealer}
+              onUpdateSB={setManualSB}
+              onUpdateBB={setManualBB}
+              onSwapPlayers={handleSwapPlayers}
+              onConfirm={confirmHandSetup}
+              onCancel={() => setGameView('tracker')}
             />
           )}
 

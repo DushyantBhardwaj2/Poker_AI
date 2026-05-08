@@ -156,7 +156,9 @@ export async function startGame(
   initialStacks: number[],
   smallBlind: number,
   bigBlind: number,
-  dealerIndex: number = 0
+  dealerIndex: number = 0,
+  sbIndex: number = -1,
+  bbIndex: number = -1
 ): Promise<GameState> {
   const res = await fetch(`${API_URL}/game/start`, {
     method: 'POST',
@@ -166,7 +168,9 @@ export async function startGame(
       initial_stacks: initialStacks,
       small_blind: smallBlind,
       big_blind: bigBlind,
-      dealer_index: dealerIndex
+      dealer_index: dealerIndex,
+      sb_index: sbIndex,
+      bb_index: bbIndex
     }),
   });
   return handleResponse(res);
