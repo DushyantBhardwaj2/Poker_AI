@@ -12,7 +12,7 @@ PokerSense AI transforms the way you track and analyze live poker. Instead of re
 - **Live Game Tracking**: Simplified interface to record actions, handle complex side pots, and track player stats across multiple sessions.
 
 ## 🎮 How to Use
-1. **Launch the App**: Open the [Production Website](https://poker-g23cvv44r-dushyant2.vercel.app).
+1. **Launch the App**: Open the [Production Website](https://poker-ai-black.vercel.app/).
 2. **Setup the Table**: Input the current blinds and player stacks to begin tracking a session.
 3. **Record Actions**: Click on player names to record their actions (Fold, Check, Call, Raise) as they happen at your real-world table.
 4. **Get Advice**: Watch the **AI Advisor HUD** update instantly with win percentages, opponent profiles, and recommended moves.
