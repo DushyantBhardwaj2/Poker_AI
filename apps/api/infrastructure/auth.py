@@ -59,36 +59,31 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> str:
             print(f"[Auth] JWKS unavailable, using unverified user_id: {user_id}")
             return user_id
 
-        # 2. Extract kid from header to find the correct key
+        # 2. Extract kid/alg from header to find the correct key and algorithm
         unverified_header = jwt.get_unverified_header(token)
         kid = unverified_header.get("kid")
+        token_alg = unverified_header.get("alg")
         
         # 3. Find the matching key in JWKS
-        rsa_key = {}
+        signing_key = None
         for key in jwks.get("keys", []):
             if key.get("kid") == kid:
-                rsa_key = {
-                    "kty": key.get("kty"),
-                    "kid": key.get("kid"),
-                    "use": key.get("use"),
-                    "n": key.get("n"),
-                    "e": key.get("e")
-                }
+                signing_key = key
                 break
-        
-        if rsa_key:
+
+        if signing_key and token_alg:
             # 4. Verify the JWT
             payload = jwt.decode(
                 token,
-                rsa_key,
-                algorithms=["RS256"],
+                signing_key,
+                algorithms=[token_alg],
                 audience=None,
                 options={"verify_aud": False}
             )
             return payload.get("sub")
         else:
             # KEY MISMATCH: This happens if the token was issued by a different project
-            print(f"[Auth Warning] Key {kid} not found in JWKS. Token might be from a different project.")
+            print(f"[Auth Warning] Key {kid} or alg {token_alg} not found/valid in JWKS. Token might be from a different project.")
             # For local dev, we might want to be permissive if the token looks like a valid UUID
             return user_id
 
