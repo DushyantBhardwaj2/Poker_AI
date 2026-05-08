@@ -12,5 +12,6 @@ scipy
 structlog
 asgi_correlation_id
 httpx
-python-jose[cryptography]
+PyJWT[crypto]
+cryptography
 -e ./packages/domain
