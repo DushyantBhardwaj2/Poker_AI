@@ -23,6 +23,8 @@ pip-wheel-metadata/
 # Database
 poker_ai.db
 *.sqlite
+archive/
+*.db
 
 # Node
 node_modules/
@@ -53,6 +55,7 @@ apps/web/.env
 # Logs
 *.log
 npm-debug.log*
+*.har
 
 # Editor directories and files
 .vscode/
@@ -76,14 +79,24 @@ pytest_cache/
 .mcp.json
 .mcp/
 .cursor/
+.claude/
+.agents/
+graphify-out/
+skills-lock.json
 
 # Local environment overrides
 *.local
 
-# ML hand-history dataset
+# AI Instructions (Keep local)
+GEMINI.md
+CLAUDE.md
+
+# ML hand-history dataset & Scratch
 ml_modules/data/
 ml_modules/poker-hand-histories/
 ml_modules/poker-hand-histories.zip
+ml_modules/temp_test.py
+ml_modules/sample_file_list.txt
 
 .gemini/
 gha-creds-*.json
