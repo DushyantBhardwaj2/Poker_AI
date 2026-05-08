@@ -54,6 +54,8 @@ class User(Base):
 
     user_id = Column(GUID(), primary_key=True, default=generate_uuid)
     email = Column(String, unique=True, nullable=False, index=True)
+    name = Column(String, nullable=True)
+    poker_experience = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     opponents = relationship("Opponent", back_populates="user")

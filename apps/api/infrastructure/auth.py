@@ -50,7 +50,7 @@ def jwk_to_public_key(jwk: Dict[str, Any]):
             return algo.from_jwk(json.dumps(jwk))
         elif kty == "OKP":  # EdDSA support
             from jwt.algorithms import OKPAlgorithm
-            algo = OKPAlgorithm(OKPAlgorithm.SHA256)
+            algo = OKPAlgorithm()
             return algo.from_jwk(json.dumps(jwk))
         else:
             print(f"[Auth] Unsupported key type: {kty}")
@@ -61,17 +61,22 @@ def jwk_to_public_key(jwk: Dict[str, Any]):
 
 
 
-async def verify_neon_token(authorization: Optional[str] = Header(None)) -> str:
+async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
     """
     Verifies the Bearer token from Neon Auth using PyJWT + cryptography.
-    Returns the user_id (sub) on success.
+    Returns the user data (dict with sub, email, name) on success.
     Raises HTTPException (401) if authentication fails.
-    Production-safe: no permissive fallbacks.
     """
     # DEVELOPMENT OVERRIDE: Allow skipping auth if explicitly requested via env var
     if os.getenv("SKIP_AUTH", "").lower() == "true":
-        print("[Auth] SKIP_AUTH enabled; returning test user")
-        return "test-user-id"
+        test_id = "00000000-0000-0000-0000-000000000000"
+        print(f"[Auth] SKIP_AUTH enabled; returning test user {test_id}")
+        return {
+            "user_id": test_id,
+            "sub": test_id,
+            "email": "test@poker-sense.ai",
+            "name": "Test Operator"
+        }
 
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
@@ -138,12 +143,12 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> str:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        # 4. Verify and decode JWT with PyJWT (supports RSA, EC, EdDSA, etc.)
+        # 4. Verify and decode JWT with PyJWT
         payload = jwt.decode(
             token,
             public_key,
             algorithms=[token_alg],
-            options={"verify_aud": False},  # Don't enforce audience claim
+            options={"verify_aud": False},
         )
         
         user_id = payload.get("sub")
@@ -155,7 +160,14 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> str:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        return user_id
+        # Success: Return payload subset
+        return {
+            "user_id": user_id,
+            "email": payload.get("email"),
+            "name": payload.get("name"),
+            # Also keep raw sub for compatibility
+            "sub": user_id
+        }
 
     except jwt.ExpiredSignatureError:
         print(f"[Auth] Token expired")
@@ -171,15 +183,6 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> str:
             detail="Invalid authentication token.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except DecodeError as e:
-        print(f"[Auth] JWT decode error: {e}")
-        raise HTTPException(
-            status_code=401,
-            detail="Unable to decode token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except HTTPException:
-        raise  # Re-raise HTTPException as-is
     except Exception as e:
         print(f"[Auth] Unexpected error during token verification: {e}")
         raise HTTPException(
@@ -189,28 +192,41 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> str:
         )
 
 
+from packages.domain.database import SessionLocal
+from packages.domain.stats_repository import StatsRepository
 
 def get_current_user_id(
-    user_id: str = Depends(verify_neon_token)
+    user_data: Dict[str, Any] = Depends(verify_neon_token)
 ) -> str:
     """
-    Validates that user_id from token is a valid UUID.
+    Validates user_id and syncs user info (email/name) to the local database.
     Returns the user_id string for use in endpoints.
     """
+    user_id = user_data.get("user_id")
+    email = user_data.get("email")
+    name = user_data.get("name")
+
     if not user_id:
         raise HTTPException(
             status_code=401,
             detail="No user ID in token.",
         )
+
+    # Sync User to Local Database (Background-ish sync during each request)
     try:
-        # Validate that it's a valid UUID format
-        uuid.UUID(user_id)
-        return user_id
-    except (ValueError, AttributeError):
-        # If not a UUID, still return it (Neon might use other formats)
-        # but log it for monitoring
-        print(f"[Auth] Non-UUID user_id format: {user_id}")
-        return user_id
+        with SessionLocal() as db:
+            repo = StatsRepository(db)
+            repo._ensure_user_exists(
+                user_id=uuid.UUID(user_id),
+                email=email,
+                name=name
+            )
+            db.commit()
+    except Exception as e:
+        # Don't fail the request if sync fails, but log it
+        print(f"[Auth] User sync failed for {user_id}: {e}")
+
+    return user_id
 
 
 # ============================================================================

@@ -70,7 +70,8 @@ Rules:
    - No fallback to unverified tokens — all requests must pass cryptographic verification
 
 4. **Frontend Email Login (Already Enabled):**
-   - `apps/web/src/components/auth/AuthUI.tsx` supports email/password via `authClient.signIn.email()`
+   - `apps/web/src/components/auth/LoginForm.tsx` handles sign-in via `authClient.signIn.email()`
+   - `apps/web/src/components/auth/SignupForm.tsx` handles registration via `authClient.signUp.email()`, capturing operator name and experience level.
    - Google OAuth also available via `authClient.signIn.social(provider='google')`
    - Both flows issue Neon Auth tokens which backend now correctly validates
 
