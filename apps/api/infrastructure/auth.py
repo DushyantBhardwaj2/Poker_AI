@@ -184,14 +184,14 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
         print(f"[Auth] JWT verification failed: {e}")
         raise HTTPException(
             status_code=401,
-            detail="Invalid authentication token.",
+            detail=f"Invalid authentication token: {e}",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
         print(f"[Auth] Unexpected error during token verification: {e}")
         raise HTTPException(
             status_code=401,
-            detail="Token verification failed.",
+            detail=f"Token verification failed. Reason: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

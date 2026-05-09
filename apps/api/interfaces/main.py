@@ -54,7 +54,8 @@ def _run_column_migrations():
                 db.execute(text("ALTER TABLE game_sessions ADD COLUMN total_winnings FLOAT DEFAULT 0.0"))
                 logger.info("Added total_winnings column to game_sessions")
             except Exception as e:
-                if "duplicate" in str(e).lower():
+                db.rollback()
+                if "duplicate" in str(e).lower() or "already exists" in str(e).lower():
                     logger.info("total_winnings column already exists")
                 else:
                     logger.warning(f"Could not add total_winnings: {e}")
@@ -63,7 +64,8 @@ def _run_column_migrations():
                 db.execute(text("ALTER TABLE game_sessions ADD COLUMN ended_at TIMESTAMPTZ"))
                 logger.info("Added ended_at column to game_sessions")
             except Exception as e:
-                if "duplicate" in str(e).lower():
+                db.rollback()
+                if "duplicate" in str(e).lower() or "already exists" in str(e).lower():
                     logger.info("ended_at column already exists")
                 else:
                     logger.warning(f"Could not add ended_at: {e}")
