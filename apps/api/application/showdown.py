@@ -56,10 +56,18 @@ class ShowdownUseCase:
                         elif hand_value == best_value:
                             winners.append(idx)
             
-            # Divide pot
-            win_amount = pot.amount / len(winners)
+            # Divide pot using integer arithmetic on cents to avoid rounding errors
+            # Distribute remainder to first winner (standard casino rule)
+            amount_cents = int(round(pot.amount * 100))
+            win_cents = amount_cents // len(winners)
+            remainder_cents = amount_cents % len(winners)
+            win_amount = win_cents / 100.0
+            remainder = remainder_cents / 100.0
             for w_idx in winners:
                 state.players[w_idx].stack += win_amount
+            # Give remainder to the first winner (deterministic, no lost chips)
+            if remainder > 0 and winners:
+                state.players[winners[0]].stack += remainder
             
             results.append({
                 "pot_index": pot_idx,

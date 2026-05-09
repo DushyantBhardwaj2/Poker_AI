@@ -69,6 +69,7 @@ def default_session_features():
         "session_calls": 0.0,
         "cbet_count": 0,
         "three_bet_count": 0,
+        "recent_history": []
     }
 
 class User(Base):

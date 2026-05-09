@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { usePokerStore } from '../../stores/usePokerStore';
 import { PokerAPI } from '../../lib/api';
 
 export default function ActionPanel() {
-  const { players, current_player_index, sessionId, pot, updatePlayerAction, nextPlayer, setError } = usePokerStore();
+  const { players, current_player_index, sessionId, pot, updatePlayerAction, nextPlayer, setError, setPlayers } = usePokerStore();
   const [isRaising, setIsRaising] = useState(false);
   const [raiseAmount, setRaiseAmount] = useState<number | ''>('');
+  const [actionInProgress, setActionInProgress] = useState(false);
 
   const activePlayer = players[current_player_index];
   
@@ -16,26 +17,38 @@ export default function ActionPanel() {
 
   if (!activePlayer) return null;
 
-  const handleAction = async (action: 'fold' | 'check' | 'call' | 'raise' | 'all-in', amount: number = 0) => {
+  const handleAction = useCallback(async (action: 'fold' | 'check' | 'call' | 'raise' | 'all-in', amount: number = 0) => {
+    if (actionInProgress) return; // Prevent double-click
+    setActionInProgress(true);
+
     try {
-      // Opt UI
+      // Snapshot for rollback on failure
+      const previousPlayers = JSON.parse(JSON.stringify(players));
+      const previousIndex = current_player_index;
+
+      // Optimistic UI update
       updatePlayerAction(activePlayer.name, action, amount);
       nextPlayer();
       setIsRaising(false);
       setRaiseAmount('');
-      
-      // Real API
+
+      // API call (real backend state)
       if (sessionId) {
         await PokerAPI.recordAction(sessionId, activePlayer.name, action, amount);
       }
     } catch (err: any) {
-      setError(err.message || 'Action failed');
+      // Rollback on failure - restore previous state
+      setPlayers(previousPlayers);
+      setError(err.message || 'Action failed - state restored, please retry');
+    } finally {
+      setActionInProgress(false);
     }
-  };
+  }, [actionInProgress, sessionId, players, current_player_index, activePlayer]);
 
   const ActionButton = ({ label, onClick, variant = 'default', shortcut }: any) => {
     const baseStyle = "relative flex flex-col items-center justify-center p-4 border font-mono tracking-widest transition-all group overflow-hidden";
-    
+    const disabledStyle = actionInProgress ? "opacity-50 cursor-not-allowed" : "";
+
     const variants = {
       default: "border-gray-700 bg-gray-900 text-gray-300 hover:border-gray-500 hover:bg-gray-800",
       fold: "border-red-900/50 bg-red-950/30 text-red-400 hover:border-red-500/50 hover:bg-red-900/20",
@@ -44,7 +57,11 @@ export default function ActionPanel() {
     };
 
     return (
-      <button onClick={onClick} className={`${baseStyle} ${variants[variant as keyof typeof variants]}`}>
+      <button
+        onClick={onClick}
+        disabled={actionInProgress}
+        className={`${baseStyle} ${variants[variant as keyof typeof variants]} ${disabledStyle}`}
+      >
         <span className="text-lg font-bold">{label}</span>
         {shortcut && <span className="absolute top-1 left-1 text-[10px] text-gray-600 border border-gray-700 px-1 rounded-sm">{shortcut}</span>}
       </button>

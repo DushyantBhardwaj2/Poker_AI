@@ -54,9 +54,11 @@ CREATE TABLE IF NOT EXISTS opponent_stats (
         "hands_played": 0,
         "vpip_count": 0,
         "pfr_count": 0,
-        "aggression_total": 0,
+        "session_bets": 0.0,
+        "session_calls": 0.0,
         "cbet_count": 0,
-        "three_bet_count": 0
+        "three_bet_count": 0,
+        "recent_history": []
     }'::jsonb,
     reliability_score TEXT DEFAULT 'Low',
     last_updated TIMESTAMPTZ DEFAULT NOW()
@@ -147,13 +149,18 @@ BEGIN
             "hands_played": 0,
             "vpip_count": 0,
             "pfr_count": 0,
-            "aggression_total": 0,
+            "session_bets": 0.0,
+            "session_calls": 0.0,
             "cbet_count": 0,
-            "three_bet_count": 0
+            "three_bet_count": 0,
+            "recent_history": []
         }'::jsonb;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='opponent_stats' AND column_name='reliability_score') THEN
         ALTER TABLE opponent_stats ADD COLUMN reliability_score TEXT DEFAULT 'Low';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='opponent_stats' AND column_name='behavioral_description') THEN
+        ALTER TABLE opponent_stats ADD COLUMN behavioral_description TEXT DEFAULT 'Unknown';
     END IF;
 END $$;
 
