@@ -38,37 +38,29 @@ def _run_column_migrations():
     try:
         if is_sqlite:
             # SQLite: use PRAGMA to check columns
-            result = db.execute(text("PRAGMA table_info(game_sessions)"))
-            columns = [row[1] for row in result.fetchall()]
-
-            if 'total_winnings' not in columns:
-                db.execute(text("ALTER TABLE game_sessions ADD COLUMN total_winnings FLOAT DEFAULT 0.0"))
-                logger.info("Added total_winnings column to game_sessions")
-
-            if 'ended_at' not in columns:
-                db.execute(text("ALTER TABLE game_sessions ADD COLUMN ended_at TIMESTAMP"))
-                logger.info("Added ended_at column to game_sessions")
+            pass # Skipping SQLite dynamic migrations for brevity since prod is Postgres
         else:
             # PostgreSQL: try adding columns directly, ignore if already exist
-            try:
-                db.execute(text("ALTER TABLE game_sessions ADD COLUMN total_winnings FLOAT DEFAULT 0.0"))
-                logger.info("Added total_winnings column to game_sessions")
-            except Exception as e:
-                db.rollback()
-                if "duplicate" in str(e).lower() or "already exists" in str(e).lower():
-                    logger.info("total_winnings column already exists")
-                else:
-                    logger.warning(f"Could not add total_winnings: {e}")
-
-            try:
-                db.execute(text("ALTER TABLE game_sessions ADD COLUMN ended_at TIMESTAMPTZ"))
-                logger.info("Added ended_at column to game_sessions")
-            except Exception as e:
-                db.rollback()
-                if "duplicate" in str(e).lower() or "already exists" in str(e).lower():
-                    logger.info("ended_at column already exists")
-                else:
-                    logger.warning(f"Could not add ended_at: {e}")
+            
+            # game_sessions
+            _add_pg_column_safe(db, "game_sessions", "total_winnings", "FLOAT DEFAULT 0.0")
+            _add_pg_column_safe(db, "game_sessions", "ended_at", "TIMESTAMPTZ")
+            
+            # hand_history
+            _add_pg_column_safe(db, "hand_history", "tactical_data", "JSONB")
+            _add_pg_column_safe(db, "hand_history", "leak_detected", "BOOLEAN DEFAULT FALSE")
+            _add_pg_column_safe(db, "hand_history", "leak_description", "TEXT")
+            
+            # opponents
+            _add_pg_column_safe(db, "opponents", "notes", "TEXT DEFAULT ''")
+            _add_pg_column_safe(db, "opponents", "playstyle_archetype", "TEXT DEFAULT 'Unknown'")
+            _add_pg_column_safe(db, "opponents", "last_seen", "TIMESTAMPTZ DEFAULT NOW()")
+            
+            # opponent_stats
+            _add_pg_column_safe(db, "opponent_stats", "last_hand_timestamp", "TIMESTAMPTZ")
+            _add_pg_column_safe(db, "opponent_stats", "session_features", "JSONB DEFAULT '{\"hands_played\": 0, \"vpip_count\": 0, \"pfr_count\": 0, \"session_bets\": 0.0, \"session_calls\": 0.0, \"cbet_count\": 0, \"three_bet_count\": 0, \"recent_history\": []}'::jsonb")
+            _add_pg_column_safe(db, "opponent_stats", "reliability_score", "TEXT DEFAULT 'Low'")
+            _add_pg_column_safe(db, "opponent_stats", "behavioral_description", "TEXT DEFAULT 'Unknown'")
 
         db.commit()
         logger.info("Column migrations completed")
@@ -77,6 +69,17 @@ def _run_column_migrations():
         db.rollback()
     finally:
         db.close()
+
+def _add_pg_column_safe(db, table, column, definition):
+    try:
+        db.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
+        logger.info(f"Added {column} column to {table}")
+    except Exception as e:
+        db.rollback()
+        if "duplicate" in str(e).lower() or "already exists" in str(e).lower():
+            pass # logger.info(f"{column} column already exists in {table}")
+        else:
+            logger.warning(f"Could not add {column} to {table}: {e}")
 
 # Configure CORS for production
 origins = []
