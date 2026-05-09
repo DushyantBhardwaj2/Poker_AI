@@ -283,5 +283,7 @@ async def analyze_full(
             "timing_ms": int((time.time() - start_time) * 1000)
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         log.error("Analysis failed", error=str(e))
         raise HTTPException(status_code=400, detail=str(e))

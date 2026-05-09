@@ -189,6 +189,7 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
         )
     except Exception as e:
         print(f"[Auth] Unexpected error during token verification: {e}")
+        traceback.print_exc()
         raise HTTPException(
             status_code=401,
             detail=f"Token verification failed. Reason: {str(e)}",
@@ -275,6 +276,21 @@ async def create_neon_auth_token_for_user(email: str, password: str) -> str:
                     detail="Authentication failed.",
                 )
     except httpx.RequestError as e:
+        print(f"[Auth] Failed to reach Neon Auth: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail="Authentication service unavailable.",
+        )
+se.status_code,
+                    detail="Authentication failed.",
+                )
+    except httpx.RequestError as e:
+        print(f"[Auth] Failed to reach Neon Auth: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail="Authentication service unavailable.",
+        )
+r as e:
         print(f"[Auth] Failed to reach Neon Auth: {e}")
         raise HTTPException(
             status_code=502,
