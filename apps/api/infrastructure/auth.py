@@ -1,11 +1,13 @@
-import os
-import httpx
 import json
+import os
+import traceback
 import uuid
-from fastapi import Header, HTTPException, Depends
+from typing import Any, Dict, Optional
+
+import httpx
 import jwt
-from jwt.exceptions import InvalidTokenError, DecodeError
-from typing import Optional, Dict, Any
+from fastapi import Depends, Header, HTTPException
+from jwt.exceptions import DecodeError, InvalidTokenError
 
 # Configuration
 NEON_AUTH_URL = os.getenv("NEON_AUTH_URL")
@@ -18,6 +20,7 @@ JWKS_URL = f"{NEON_AUTH_URL}/.well-known/jwks.json"
 
 _jwks_cache = None
 _jwks_keys_map: Dict[str, Any] = {}  # Map kid -> key for faster lookup
+
 
 async def get_jwks():
     """Fetch and cache JWKS from Neon Auth endpoint."""
@@ -38,22 +41,26 @@ async def get_jwks():
                 _jwks_cache = {"keys": []}
     return _jwks_cache
 
+
 def jwk_to_public_key(jwk: Dict[str, Any]):
     """Convert JWK to cryptography public key object for verification."""
     try:
         # Use PyJWT's built-in algorithm classes to convert JWK
         kty = jwk.get("kty")
-        
+
         if kty == "RSA":
             from jwt.algorithms import RSAAlgorithm
+
             algo = RSAAlgorithm(RSAAlgorithm.SHA256)
             return algo.from_jwk(json.dumps(jwk))
         elif kty == "EC":
             from jwt.algorithms import ECAlgorithm
+
             algo = ECAlgorithm(ECAlgorithm.SHA256)
             return algo.from_jwk(json.dumps(jwk))
         elif kty == "OKP":  # EdDSA support
             from jwt.algorithms import OKPAlgorithm
+
             algo = OKPAlgorithm()
             return algo.from_jwk(json.dumps(jwk))
         else:
@@ -64,8 +71,9 @@ def jwk_to_public_key(jwk: Dict[str, Any]):
     return None
 
 
-
-async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+async def verify_neon_token(
+    authorization: Optional[str] = Header(None),
+) -> Dict[str, Any]:
     """
     Verifies the Bearer token from Neon Auth using PyJWT + cryptography.
     Returns the user data (dict with sub, email, name) on success.
@@ -79,7 +87,7 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
             "user_id": test_id,
             "sub": test_id,
             "email": "test@poker-sense.ai",
-            "name": "Test Operator"
+            "name": "Test Operator",
         }
 
     if not authorization or not authorization.startswith("Bearer "):
@@ -96,13 +104,13 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
             detail="Invalid authorization header format.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     try:
         # 1. Decode token header without verification to get kid and alg
         unverified_header = jwt.get_unverified_header(token)
         kid = unverified_header.get("kid")
         token_alg = unverified_header.get("alg")
-        
+
         if not kid or not token_alg:
             print(f"[Auth] Token missing kid or alg in header")
             raise HTTPException(
@@ -110,7 +118,7 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
                 detail="Token header missing required fields (kid, alg).",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         # 2. Get JWKS and find matching key by kid
         jwks = await get_jwks()
         if not jwks or not jwks.get("keys"):
@@ -119,7 +127,7 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
                 status_code=502,
                 detail="Authentication service temporarily unavailable.",
             )
-        
+
         # Find the key by kid (use cache map for O(1) lookup)
         signing_key = _jwks_keys_map.get(kid)
         if not signing_key:
@@ -128,7 +136,7 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
                 if key.get("kid") == kid:
                     signing_key = key
                     break
-        
+
         if not signing_key:
             print(f"[Auth] Key with kid '{kid}' not found in JWKS")
             raise HTTPException(
@@ -136,7 +144,7 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
                 detail="Token signing key not found. Possibly from a different auth provider.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         # 3. Convert JWK to public key
         public_key = jwk_to_public_key(signing_key)
         if not public_key:
@@ -146,7 +154,7 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
                 detail="Unable to process signing key. Invalid key format.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         # 4. Verify and decode JWT with PyJWT
         payload = jwt.decode(
             token,
@@ -154,7 +162,7 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
             algorithms=[token_alg],
             options={"verify_aud": False},
         )
-        
+
         user_id = payload.get("sub")
         if not user_id:
             print(f"[Auth] Token payload missing 'sub' claim")
@@ -163,14 +171,14 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
                 detail="Token missing required 'sub' claim.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         # Success: Return payload subset
         return {
             "user_id": user_id,
             "email": payload.get("email"),
             "name": payload.get("name"),
             # Also keep raw sub for compatibility
-            "sub": user_id
+            "sub": user_id,
         }
 
     except jwt.ExpiredSignatureError:
@@ -200,9 +208,8 @@ async def verify_neon_token(authorization: Optional[str] = Header(None)) -> Dict
 from packages.domain.database import SessionLocal
 from packages.domain.stats_repository import StatsRepository
 
-def get_current_user_id(
-    user_data: Dict[str, Any] = Depends(verify_neon_token)
-) -> str:
+
+def get_current_user_id(user_data: Dict[str, Any] = Depends(verify_neon_token)) -> str:
     """
     Validates user_id and syncs user info (email/name) to the local database.
     Returns the user_id string for use in endpoints.
@@ -221,11 +228,7 @@ def get_current_user_id(
     try:
         with SessionLocal() as db:
             repo = StatsRepository(db)
-            repo._ensure_user_exists(
-                user_id=uuid.UUID(user_id),
-                email=email,
-                name=name
-            )
+            repo._ensure_user_exists(user_id=uuid.UUID(user_id), email=email, name=name)
             db.commit()
     except Exception as e:
         # Don't fail the request if sync fails, but log it
@@ -237,6 +240,7 @@ def get_current_user_id(
 # ============================================================================
 # Email/Password Login Support
 # ============================================================================
+
 
 async def create_neon_auth_token_for_user(email: str, password: str) -> str:
     """
@@ -270,27 +274,14 @@ async def create_neon_auth_token_for_user(email: str, password: str) -> str:
                     detail="Invalid email or password.",
                 )
             else:
-                print(f"[Auth] Neon auth failed: {response.status_code} {response.text}")
+                print(
+                    f"[Auth] Neon auth failed: {response.status_code} {response.text}"
+                )
                 raise HTTPException(
                     status_code=response.status_code,
                     detail="Authentication failed.",
                 )
     except httpx.RequestError as e:
-        print(f"[Auth] Failed to reach Neon Auth: {e}")
-        raise HTTPException(
-            status_code=502,
-            detail="Authentication service unavailable.",
-        )
-se.status_code,
-                    detail="Authentication failed.",
-                )
-    except httpx.RequestError as e:
-        print(f"[Auth] Failed to reach Neon Auth: {e}")
-        raise HTTPException(
-            status_code=502,
-            detail="Authentication service unavailable.",
-        )
-r as e:
         print(f"[Auth] Failed to reach Neon Auth: {e}")
         raise HTTPException(
             status_code=502,
