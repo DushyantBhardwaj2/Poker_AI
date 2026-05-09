@@ -1,5 +1,6 @@
-import React from 'react';
-import { Play, RefreshCw, Users, Database, Coins, Trophy, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, RefreshCw, Users, Database, Coins, Trophy, Plus, Trash2, AlertCircle } from 'lucide-react';
 
 interface SetupViewProps {
   playerNames: string[];
@@ -22,13 +23,59 @@ export const SetupView: React.FC<SetupViewProps> = ({
   loading,
   onStart
 }) => {
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Check for duplicate names
+  const checkDuplicate = (name: string): boolean => {
+    const normalizedName = name.trim().toLowerCase();
+    return playerNames.some(n => n.trim().toLowerCase() === normalizedName);
+  };
+
   const addPlayer = () => {
+    // Validate
+    const trimmedName = newPlayerName.trim();
+    if (!trimmedName) {
+      setNewPlayerName('');
+      inputRef.current?.focus();
+      return;
+    }
+
+    // Check for duplicate
+    if (checkDuplicate(trimmedName)) {
+      setDuplicateError(`"${trimmedName}" already exists`);
+      return;
+    }
+
+    setDuplicateError(null);
+
+    // Add the new player
     if (playerNames.length < 10) {
-      setPlayerNames([...playerNames, `Player ${playerNames.length + 1}`]);
+      setPlayerNames([...playerNames, trimmedName]);
+      setNewPlayerName('');
+
+      // Auto-focus input after adding
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (newPlayerName.trim()) {
+        addPlayer();
+      } else {
+        // If input is empty and Enter pressed, start the game
+        onStart();
+      }
     }
   };
 
   const removePlayer = (index: number) => {
+    // Can remove if this isn't the last remaining player after us (need at least 2 total)
     if (playerNames.length > 2) {
       const newNames = [...playerNames];
       newNames.splice(index, 1);
@@ -37,10 +84,17 @@ export const SetupView: React.FC<SetupViewProps> = ({
   };
 
   const updatePlayerName = (index: number, name: string) => {
+    // Clear duplicate error when user starts typing
+    if (duplicateError) setDuplicateError(null);
+
     const newNames = [...playerNames];
     newNames[index] = name;
     setPlayerNames(newNames);
   };
+
+  // Determine if we can remove a player at given index
+  // Keep index 0 (You) always, can remove others if we have more than 2 total
+  const canRemove = (index: number) => index > 0 && playerNames.length > 2;
 
   return (
     <div className="max-w-md w-full p-1 bg-gradient-to-b from-gold/30 to-transparent rounded-3xl animate-scale-in">
@@ -65,36 +119,71 @@ export const SetupView: React.FC<SetupViewProps> = ({
               <span className="text-xs font-bold text-gold/80 uppercase tracking-[0.2em] flex items-center gap-2">
                 <Users size={14} /> Operators
               </span>
-              <button 
-                onClick={addPlayer}
-                disabled={playerNames.length >= 10}
-                className="text-xs text-gold/80 hover:text-gold uppercase tracking-widest flex items-center gap-1 disabled:opacity-50"
-              >
-                <Plus size={12} /> Add
-              </button>
+              <span className="text-[10px] text-cream/30">{playerNames.length}/10</span>
             </div>
-            
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin">
+
+            {/* Existing Players List */}
+            <div className="space-y-2 max-h-40 overflow-y-auto pr-2 scrollbar-thin">
               {playerNames.map((name, i) => (
-                <div key={i} className="flex gap-2">
-                  <input 
-                    type="text" 
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
                     value={name}
                     onChange={(e) => updatePlayerName(i, e.target.value)}
                     placeholder={i === 0 ? "You" : `Player ${i + 1}`}
                     className="flex-1 bg-charcoal-dark border border-gold/10 rounded-xl px-4 py-2 text-cream outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/20 transition-all font-mono text-sm"
                   />
-                  {i > 0 && (
-                    <button 
+                  {canRemove(i) && (
+                    <button
                       onClick={() => removePlayer(i)}
                       className="p-2 text-cream/40 hover:text-red-400 bg-charcoal-dark border border-gold/10 rounded-xl transition-all"
                     >
                       <Trash2 size={16} />
                     </button>
                   )}
-                </div>
+                </motion.div>
               ))}
             </div>
+
+            {/* Add New Player Input */}
+            <AnimatePresence>
+              {playerNames.length < 10 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="relative"
+                >
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={newPlayerName}
+                    onChange={(e) => {
+                      setNewPlayerName(e.target.value);
+                      if (duplicateError) setDuplicateError(null);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type name + Enter to add..."
+                    className={`w-full bg-charcoal-dark border rounded-xl px-4 py-2 text-cream outline-none transition-all font-mono text-sm ${
+                      duplicateError
+                        ? 'border-red-500/50 focus:border-red-500'
+                        : 'border-gold/10 focus:border-gold/50 focus:ring-1 focus:ring-gold/20'
+                    }`}
+                  />
+                  {duplicateError && (
+                    <div className="flex items-center gap-1 mt-1 text-[10px] text-red-400">
+                      <AlertCircle size={10} />
+                      {duplicateError}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

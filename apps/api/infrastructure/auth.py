@@ -8,7 +8,11 @@ from jwt.exceptions import InvalidTokenError, DecodeError
 from typing import Optional, Dict, Any
 
 # Configuration
-NEON_AUTH_URL = os.getenv("NEON_AUTH_URL", "https://ep-empty-sea-amb5bkwo.neonauth.c-5.us-east-1.aws.neon.tech/neondb/auth")
+NEON_AUTH_URL = os.getenv("NEON_AUTH_URL")
+if not NEON_AUTH_URL:
+    # If not in env, we might want a safer fallback or just fail
+    # For now, let's keep it required or at least not hardcoded with the specific endpoint
+    pass
 # The public JWKS endpoint for Neon Auth
 JWKS_URL = f"{NEON_AUTH_URL}/.well-known/jwks.json"
 

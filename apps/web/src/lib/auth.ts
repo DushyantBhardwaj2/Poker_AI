@@ -13,9 +13,7 @@ if (!isAuthEnabled) {
 }
 
 // Better-Auth based client
-export const authClient = createAuthClient(authUrl || "https://placeholder-auth.neon.tech", {
-  baseURL: authUrl || undefined
-});
+export const authClient = createAuthClient(authUrl || "https://placeholder-auth.neon.tech");
 
 /**
  * Helper to get the current session token for API calls

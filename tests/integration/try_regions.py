@@ -1,8 +1,16 @@
+import os
 import psycopg2
 from psycopg2 import OperationalError
+from dotenv import load_dotenv
 
-project_ref = "lzbmywjcssrpomqhdjha"
-password = "UaYPayiwC5sf1O0U"
+load_dotenv()
+
+project_ref = os.getenv("SUPABASE_PROJECT_REF")
+password = os.getenv("SUPABASE_PASSWORD")
+
+if not project_ref or not password:
+    print("Error: SUPABASE_PROJECT_REF or SUPABASE_PASSWORD not found in .env")
+    # We will exit or handle it gracefully
 user = f"postgres.{project_ref}"
 
 regions = [

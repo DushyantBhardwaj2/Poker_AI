@@ -1,5 +1,7 @@
 import uuid
+import time
 from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
@@ -17,6 +19,10 @@ import structlog
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+# Pipeline timeout configuration (per Section 12: P95 < 500ms target)
+PIPELINE_TIMEOUT_MS = 450  # 450ms timeout before fallback
+ANALYSIS_TIMEOUT_MS = 200  # 200ms for bluff detection
 
 # Global detector instance
 _bluff_detector = None
@@ -136,6 +142,7 @@ async def analyze_bluff(
         raise HTTPException(status_code=400, detail=str(e))
 
 from packages.ai.smart_advisor import SmartAdvisor
+from packages.ai.pipeline import run_advisor_pipeline, ValidationError as PipelineValidationError
 
 @router.post("/analyze-full")
 @router.post("/analyze-full/")
@@ -150,6 +157,9 @@ async def analyze_full(
     log.info("Starting full analysis", round=request.state.round)
 
     try:
+        # Track timing for performance monitoring
+        start_time = time.time()
+
         # 1. Win Probability (Math)
         win_prob_result = WinProbabilityCalculator.calculate(
             request.hole_cards,
@@ -158,8 +168,8 @@ async def analyze_full(
             request.num_simulations
         )
         win_prob = win_prob_result["win_probability"]
-        
-        # 2. Bluff Analysis (Behavior)
+
+        # 2. Bluff Analysis (Behavior) with timeout
         repo = StatsRepository(db)
         opponent = repo.get_or_create_opponent(user_id, request.opponent_name)
         stats = opponent.stats
@@ -168,30 +178,109 @@ async def analyze_full(
         vpip = features.get("vpip_count", 0) / hands if hands > 0 else 0.25
         pfr = features.get("pfr_count", 0) / hands if hands > 0 else 0.18
         opponent_profile = {"vpip": vpip, "pfr": pfr}
-        
-        live_state = FeatureMapper.map_to_live_state(request.state, request.history, opponent_profile)
-        bluff_result = detector.predict(live_state)
-        
-        # 3. Decision Logic (Synthesis)
-        # Determine player context
+
+        #Bluff detection with timeout protection (Section 12: Non-Blocking)
+        bluff_result = {"bluff_probability": 0.15}  # Default baseline
+        try:
+            # Check if we're within time budget
+            elapsed = (time.time() - start_time) * 1000
+            if elapsed < ANALYSIS_TIMEOUT_MS:
+                live_state = FeatureMapper.map_to_live_state(request.state, request.history, opponent_profile)
+                bluff_result = detector.predict(live_state)
+        except Exception as bd_err:
+            log.warning("Bluff detection timed out or failed, using baseline", error=str(bd_err))
+
+        # 3. Determine player context
         active_player = request.state.players[request.state.current_player_index]
         call_amount = request.state.current_bet - active_player.current_bet
-        
-        advice = SmartAdvisor.recommend(
-            win_probability=win_prob,
-            bluff_probability=bluff_result["bluff_probability"],
-            pot_size=request.state.pot,
-            call_amount=call_amount,
-            player_stack=active_player.stack
-        )
-        
-        log.info("Analysis complete", advice=advice["action"])
-        
+
+        # 4. Get opponent profile for archetype
+        profile = repo.get_opponent_profile(user_id, request.opponent_name)
+        archetype = profile.get("archetype") if profile else "Unknown"
+
+        # 5. Estimate completeness
+        completeness = min(1.0, len(request.history) / 10.0) if request.history else 0.5
+
+        # 6. Try Pipeline First with timeout (Primary), Fallback to SmartAdvisor
+        pipelineucceeded = False
+        pipeline_errors = []
+        degrade_mode = False
+
+        try:
+            # Check time budget before pipeline
+            elapsed = (time.time() - start_time) * 1000
+            if elapsed > PIPELINE_TIMEOUT_MS:
+                raise PipelineValidationError("Pipeline timeout exceeded")
+
+            # Convert request state to dict format for pipeline
+            raw_state_dict = request.state.model_dump() if hasattr(request.state, 'model_dump') else request.state.dict()
+
+            # Run the deterministic pipeline
+            advice, pipeline_errors = run_advisor_pipeline(
+                raw_state=raw_state_dict,
+                history=[h.model_dump() if hasattr(h, 'model_dump') else h.dict() for h in request.history],
+                hole_cards=request.hole_cards,
+                community_cards=request.state.community_cards,
+                win_probability=win_prob,
+                pot_size=request.state.pot,
+                call_amount=call_amount,
+                player_stack=active_player.stack,
+                sample_size=hands,
+                data_completeness=completeness,
+                opponent_archetype=archetype,
+                vpip=vpip,
+                pfr=pfr
+            )
+            pipelineucceeded = True
+            log.info("Pipeline executed successfully", action=advice.action, errors=pipeline_errors)
+
+        except PipelineValidationError as pe:
+            # Pipeline validation failed - fall back to SmartAdvisor
+            log.warning("Pipeline validation failed, falling back to SmartAdvisor", error=str(pe))
+            pipeline_errors.append(f"Pipeline validation: {str(pe)}")
+            degrade_mode = True
+            advice = SmartAdvisor.recommend(
+                win_probability=win_prob,
+                bluff_probability=bluff_result["bluff_probability"],
+                pot_size=request.state.pot,
+                call_amount=call_amount,
+                player_stack=active_player.stack,
+                opponent_sample_size=hands,
+                data_completeness=completeness,
+                opponent_archetype=archetype,
+                is_shifting=profile.get("is_shifting", False) if profile else False,
+                shift_direction=profile.get("shift_direction", "stable") if profile else "stable"
+            )
+        except Exception as e:
+            # Pipeline execution failed - fall back to SmartAdvisor
+            log.warning("Pipeline execution failed, falling back to SmartAdvisor", error=str(e))
+            pipeline_errors.append(f"Pipeline error: {str(e)}")
+            degrade_mode = True
+            advice = SmartAdvisor.recommend(
+                win_probability=win_prob,
+                bluff_probability=bluff_result["bluff_probability"],
+                pot_size=request.state.pot,
+                call_amount=call_amount,
+                player_stack=active_player.stack,
+                opponent_sample_size=hands,
+                data_completeness=completeness,
+                opponent_archetype=archetype,
+                is_shifting=profile.get("is_shifting", False) if profile else False,
+                shift_direction=profile.get("shift_direction", "stable") if profile else "stable"
+            )
+
+        log.info("Analysis complete", method="pipeline" if pipelineucceeded else "smart_advisor",
+                advice=advice.action, confidence=advice.confidence_level)
+
         return {
             "win_analysis": win_prob_result,
             "bluff_analysis": bluff_result,
             "advice": advice,
-            "opponent_profile": OpponentProfiler.profile(vpip, pfr)
+            "opponent_profile": profile or opponent_profile,
+            "pipeline_used": pipelineucceeded,
+            "pipeline_errors": pipeline_errors,
+            "degrade_mode": degrade_mode,  # Section 12: Indicates simplified response
+            "timing_ms": int((time.time() - start_time) * 1000)
         }
     except Exception as e:
         log.error("Analysis failed", error=str(e))

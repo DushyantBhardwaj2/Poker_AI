@@ -1,0 +1,12 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import { AnalyticsView } from '../components/AnalyticsView';
+---
+
+<MainLayout title="Session Analytics | PokerSense AI">
+	<main class="min-h-screen bg-charcoal text-white pt-24 pb-12">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			<AnalyticsView client:load />
+		</div>
+	</main>
+</MainLayout>

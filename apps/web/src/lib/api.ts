@@ -27,6 +27,10 @@ export interface Player {
   is_all_in: boolean;
   status: PlayerStatus;
   has_acted: boolean;
+  vpip_this_hand?: boolean;
+  pfr_this_hand?: boolean;
+  vpip?: number;
+  pfr?: number;
   bet?: number; // Added for compatibility with usePokerStore
 }
 
@@ -49,6 +53,7 @@ export interface GameState {
   round: GameRound;
   small_blind: number;
   big_blind: number;
+  sessionId?: string | null;  // Optional session ID for analytics
 }
 
 export interface ActionRecord {
@@ -71,26 +76,154 @@ export interface BluffAnalysis {
   street_rank: number;
 }
 
-export interface StrategicAdvice {
-  action: string;
+export interface KeyFactor {
+  headline: string;
+  description: string;
+}
+
+export interface ExplanationStructured {
+  main: string;
+  pot_odds_theory?: string;
+  fundamental_theorem?: string;
+  bluff_context?: string;
+}
+
+export interface TacticalDataV2 {
+  win_probability: number;
+  adjusted_win_probability: number;
+  bluff_probability: number;
+  pot_odds: number;
+  expected_value: number;
+}
+
+export interface DataQualityV2 {
+  sample_size: number;
+  data_completeness: number;
+  confidence_score: number;
+  degradation_reasons: string[];
+}
+
+export interface AdvisorResponse {
+  action: ActionType;
+  strategic_directive: string;
+  confidence_level: 'High' | 'Medium' | 'Low' | 'Speculative';
+  strategic_theme: string;
+  key_factors: KeyFactor[];
+  explanation_structured: ExplanationStructured;
+  tactical_data: TacticalDataV2;
+  data_quality?: DataQualityV2;
+  opponent_archetype?: string;
+  // Legacy fields
+  explanation: string;
   ev: number;
   pot_odds: number;
-  explanation: string;
+  adjusted_win_probability: number;
+  bluff_probability: number;
   theory_tip?: string;
 }
 
 export interface OpponentProfile {
+  total_hands: number;
+  hands_played: number;  // Required for cold start check
   vpip: number;
   pfr: number;
-  classification: string;
-  description: string;
+  aggression: number;
+  bluffs: number;
+  cbet_success_rate: number;
+  three_bet_rate: number;
+  wtsd: number;
+  archetype: string;
+  reliability: 'Low' | 'Medium' | 'High';
+  notes: string;
+  last_seen: string | null;
+}
+
+export interface OpponentProfileDetail extends OpponentProfile {
+  cbet_rate: number;
+  three_bet_rate: number;
+  fold_to_river: number;
+  session_vpip: number;
+  is_shifting: boolean;
+  shift_direction: 'more_passive' | 'more_aggressive' | 'stable';
+}
+
+export interface RecentOpponent {
+  player_name: string;
+  archetype: string;
+  last_seen: string | null;
+  hands_played: number;
 }
 
 export interface FullAnalysisResponse {
   win_analysis: WinAnalysis;
   bluff_analysis: BluffAnalysis;
-  advice: StrategicAdvice;
+  advice: AdvisorResponse;
   opponent_profile: OpponentProfile;
+  hands_played?: number;  // For cold start check
+}
+
+// --- New SmartAdvisor Response Schema (from ux_advance_plan.md) ---
+
+export interface HandPotential {
+  current_strength: string;
+  draw_strength: string;
+  improvement_chance: string;
+}
+
+export interface NewBluffAnalysis {
+  likelihood: string;
+  reason: string;
+}
+
+export interface BoardAnalysis {
+  texture: string;
+  range_advantage: string;
+  volatility: string;
+}
+
+export interface Factor {
+  type: 'positive' | 'warning';
+  title: string;
+  detail: string;
+  priority: number;
+}
+
+export interface Advice {
+  action: string;
+  verdict: string;
+  summary: string;
+  strategic_theme: string;
+  confidence_label: string;
+  risk_level: string;
+  hand_potential: HandPotential;
+  bluff_analysis: NewBluffAnalysis;
+  board_analysis: BoardAnalysis;
+  factors: Factor[];
+  alternative_line: string;
+}
+
+export interface TacticalData {
+  equity: number;
+  ev: number;
+  pot_odds: number;
+  opponent_stats: {
+    vpip: number;
+    pfr: number;
+    agg_freq: number;
+  };
+}
+
+export interface DataQuality {
+  sample_size: number;
+  reliability: 'Low' | 'Medium' | 'High';
+  confidence_decay_active: boolean;
+  decay_reason: string;
+}
+
+export interface SmartAdvisorResponse {
+  advice: Advice;
+  tactical_data: TacticalData;
+  data_quality: DataQuality;
 }
 
 // Unified API URL Configuration
@@ -234,9 +367,67 @@ export async function getWinProbability(
   return handleResponse(res);
 }
 
-export async function getAllStats(): Promise<Record<string, OpponentProfile & { total_hands: number }>> {
+export async function getAllStats(): Promise<Record<string, OpponentProfile>> {
   const res = await fetch(`${API_URL}/stats`, {
     method: 'GET',
+    headers: await getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function getRecentOpponents(limit = 10): Promise<RecentOpponent[]> {
+  const res = await fetch(`${API_URL}/stats/recent?limit=${limit}`, {
+    method: 'GET',
+    headers: await getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function getOpponentProfile(playerName: string): Promise<OpponentProfileDetail> {
+  const res = await fetch(`${API_URL}/stats/player/${encodeURIComponent(playerName)}`, {
+    method: 'GET',
+    headers: await getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function updateOpponentNotes(playerName: string, notes: string): Promise<void> {
+  const res = await fetch(`${API_URL}/stats/notes`, {
+    method: 'POST',
+    headers: await getHeaders(),
+    body: JSON.stringify({ player_name: playerName, notes }),
+  });
+  return handleResponse(res);
+}
+
+export interface UpdateStatsRequest {
+  player_name: string;
+  vpip_this_hand: boolean;
+  pfr_this_hand: boolean;
+  is_bluff?: boolean;
+  made_cbet?: boolean;
+  cbet_succeeded?: boolean;
+  made_three_bet?: boolean;
+  three_bet_succeeded?: boolean;
+  fold_to_river?: boolean;
+  called_showdown?: boolean;
+  won_showdown?: boolean;
+  bet_amount?: number;
+  call_amount?: number;
+}
+
+export async function updatePlayerStats(request: UpdateStatsRequest): Promise<{ status: string; hands_played: number }> {
+  const res = await fetch(`${API_URL}/stats/update_stats`, {
+    method: 'POST',
+    headers: await getHeaders(),
+    body: JSON.stringify(request),
+  });
+  return handleResponse(res);
+}
+
+export async function resetSessionStats(): Promise<{ status: string }> {
+  const res = await fetch(`${API_URL}/stats/reset_session`, {
+    method: 'POST',
     headers: await getHeaders(),
   });
   return handleResponse(res);
@@ -283,7 +474,94 @@ export const PokerAPI = {
       body: JSON.stringify(payload)
     }).then(handleResponse),
   
-  getStats: async () => 
+  getStats: async () =>
     fetch(`${API_URL}/stats`, { method: 'GET', headers: await getHeaders() }).then(handleResponse)
 };
+
+// --- Phase 6: Session Analytics & Post-Game Review ---
+
+export interface HandHistory {
+  hand_id: string;
+  street: GameRound;
+  pot_size: number;
+  your_cards: Card[];
+  community_cards: Card[];
+  result?: 'win' | 'loss' | 'tie';
+  amount_won?: number;
+  action_count: number;
+  duration_seconds: number;
+  tactical_data?: any;
+  leak_detected?: boolean;
+  leak_description?: string;
+  timestamp: string;
+}
+
+export interface SessionSummary {
+  session_id: string;
+  start_time: string;
+  end_time: string | null;
+  total_hands: number;
+  hands_played: number;
+  vpip_hands: number;
+  pfr_hands: number;
+  total_winnings: number;
+  biggest_pot: number;
+  biggest_loss: number;
+  showdown_wins: number;
+  showdown_losses: number;
+  folds: number;
+  avg_position: number;
+}
+
+export interface SessionAnalytics {
+  summary: SessionSummary;
+  recent_hands: HandHistory[];
+  vpip_percentage: number;
+  pfr_percentage: number;
+  win_rate: number;
+  showdown_rate: number;
+  avg_hand_duration: number;
+  most_played_opponent: string | null;
+}
+
+export async function getAllHandHistory(limit = 50): Promise<HandHistory[]> {
+  const res = await fetch(`${API_URL}/stats/history?limit=${limit}`, {
+    method: 'GET',
+    headers: await getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function getSessionAnalytics(sessionId: string): Promise<SessionAnalytics> {
+  const url = sessionId 
+    ? `${API_URL}/stats/session/${sessionId}/analytics`
+    : `${API_URL}/stats/session/latest/analytics`;
+  
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: await getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function recordHandResult(request: {
+  hand_id?: string;
+  session_id?: string;
+  result: 'win' | 'loss' | 'tie';
+  amount_won: number;
+  street: GameRound;
+  action_count?: number;
+  duration_seconds?: number;
+  pot_size: number;
+  your_cards?: Card[];
+  community_cards?: Card[];
+  tactical_data?: any;
+}): Promise<{ status: string; hand_id: string }> {
+  const res = await fetch(`${API_URL}/stats/hand_result`, {
+    method: 'POST',
+    headers: await getHeaders(),
+    body: JSON.stringify(request),
+  });
+  return handleResponse(res);
+}
 

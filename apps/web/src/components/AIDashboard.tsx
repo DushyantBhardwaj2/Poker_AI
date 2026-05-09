@@ -12,6 +12,8 @@ interface AIDashboardProps {
   playerStats: Record<string, any>;
   onNewHand: (isNextHand?: boolean) => void;
   theoryMode?: boolean;
+  isPlayerTurn?: boolean;
+  hasCards?: boolean;
 }
 
 export function AIDashboard({
@@ -22,29 +24,34 @@ export function AIDashboard({
   playerStats,
   onNewHand,
   theoryMode,
+  isPlayerTurn = false,
+  hasCards = false,
   userName = 'You'
 }: AIDashboardProps & { userName?: string }) {
-  
+
   return (
     <div className="flex-1 max-w-sm flex flex-col gap-6">
       {showdownResult ? (
-        <PostHandAnalysis 
+        <PostHandAnalysis
           showdownResult={showdownResult}
           onNewHand={() => onNewHand(true)}
           userName={userName}
         />
       ) : (
         <>
-          {/* Unified AI Tactical HUD */}
-          <AdvisorHUD 
-            analysis={fullAnalysis}
-            loading={loading}
-            onRefresh={onRunAnalysis}
-          />
+          {/* Unified AI Tactical HUD - only show when it's player's turn */}
+          {isPlayerTurn && (
+            <AdvisorHUD 
+              analysis={fullAnalysis} 
+              loading={loading} 
+              onRefresh={onRunAnalysis} 
+              hasCards={hasCards}
+            />
+          )}
 
           {/* Legacy Player Behavior Panel (Fallback/Extra) */}
           {Object.keys(playerStats).length > 0 && (
-            <PlayerStats 
+            <PlayerStats
               stats={playerStats}
             />
           )}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Trophy, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { GameState, Player, Card } from '../lib/api';
 import { CardComponent } from './CardComponent';
 import { CardInputView } from './CardInputView';
@@ -13,7 +14,11 @@ const InlineCardPicker = ({ player, initialCards, takenCards, onConfirm, onCance
   const [tempCards, setTempCards] = useState<Card[]>(initialCards);
 
   return (
-    <div className="w-full animate-fade-in flex flex-col items-center">
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="w-full flex flex-col items-center"
+    >
       <h3 className="text-2xl font-display font-black text-gold mb-6 uppercase tracking-widest text-center border-b border-gold/20 pb-4">
         Record Cards: <span className="text-white">{player.name}</span>
       </h3>
@@ -29,7 +34,7 @@ const InlineCardPicker = ({ player, initialCards, takenCards, onConfirm, onCance
         onReset={onCancel} 
         takenCards={takenCards}
       />
-    </div>
+    </motion.div>
   );
 };
 
@@ -111,102 +116,151 @@ export const ShowdownLogicView: React.FC<ShowdownLogicViewProps> = ({ gameState,
   }
 
   return (
-    <div className="max-w-4xl w-full bg-charcoal-dark border border-gold/30 rounded-3xl p-8 animate-scale-in shadow-[0_0_60px_rgba(212,175,55,0.15)] relative overflow-hidden">
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      className="max-w-4xl w-full bg-charcoal-dark border border-gold/30 rounded-3xl p-8 shadow-[0_0_60px_rgba(212,175,55,0.15)] relative overflow-hidden"
+    >
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-50"></div>
 
       <div className="text-center space-y-4 mb-10 relative z-10 border-b border-gold/10 pb-8">
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-gold-dark to-charcoal-dark border-2 border-gold rounded-full mb-2 shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+        <motion.div 
+          initial={{ rotateY: 180, scale: 0.5 }}
+          animate={{ rotateY: 0, scale: 1 }}
+          transition={{ type: 'spring', delay: 0.2 }}
+          className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-gold-dark to-charcoal-dark border-2 border-gold rounded-full mb-2 shadow-[0_0_20px_rgba(212,175,55,0.4)]"
+        >
           <Trophy size={40} className="text-gold-light" />
-        </div>
-        <h2 className="text-5xl font-display font-black text-white uppercase tracking-[0.1em] drop-shadow-md">Showdown Resolution</h2>
-        <p className="text-gold font-mono uppercase tracking-[0.3em] text-xs">Total Pot: <span className="font-bold text-white">${gameState.pot}</span></p>
+        </motion.div>
+        <motion.h2 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-5xl font-display font-black text-white uppercase tracking-[0.1em] drop-shadow-md"
+        >
+          Showdown Resolution
+        </motion.h2>
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-gold font-mono uppercase tracking-[0.3em] text-xs"
+        >
+          Total Pot: <span className="font-bold text-white">${gameState.pot}</span>
+        </motion.p>
       </div>
 
-      <div className="relative z-10 space-y-8 animate-slide-up">
+      <div className="relative z-10 space-y-8">
         <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-2">
           <h3 className="text-xl font-display font-bold text-white uppercase tracking-widest">Declare Hands</h3>
           <span className="text-[10px] font-mono text-gold/60 uppercase tracking-widest">Show or Muck</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {activePlayerIndices.map((idx) => {
-            const p = gameState.players[idx];
-            const revealStatus = playerReveals[idx].status;
-            
-            return (
-              <div key={idx} className={`p-5 rounded-2xl border transition-all duration-300 ${
-                revealStatus === 'show' ? 'bg-gold/10 border-gold shadow-[0_0_15px_rgba(212,175,55,0.2)]' :
-                revealStatus === 'muck' ? 'bg-black/50 border-white/5 opacity-60 grayscale' :
-                'bg-charcoal border-gold/20 hover:border-gold/50'
-              }`}>
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                      idx === 0 ? 'bg-gold text-black' : 'bg-charcoal-light text-white'
-                    }`}>
-                      {idx === 0 ? 'U' : idx + 1}
-                    </div>
-                    <div>
-                      <h4 className="font-display font-bold text-lg text-white uppercase">{p.name}</h4>
-                      <p className="text-[10px] font-mono text-gold/60 uppercase">Stack: ${p.stack}</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => toggleBluff(idx)}
-                    className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-all ${
-                      playerReveals[idx].isBluff 
-                      ? 'bg-amber-warm text-charcoal-dark border-amber-warm shadow-gold' 
-                      : 'bg-white/5 text-white/40 border-white/10 hover:border-gold/30'
+          <AnimatePresence mode="popLayout">
+            {activePlayerIndices.map((idx, i) => {
+                const p = gameState.players[idx];
+                const revealStatus = playerReveals[idx].status;
+                
+                return (
+                <motion.div 
+                    key={idx}
+                    initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 * i }}
+                    layout
+                    className={`p-5 rounded-2xl border transition-all duration-300 ${
+                    revealStatus === 'show' ? 'bg-gold/10 border-gold shadow-[0_0_15px_rgba(212,175,55,0.2)]' :
+                    revealStatus === 'muck' ? 'bg-black/50 border-white/5 opacity-60 grayscale' :
+                    'bg-charcoal border-gold/20 hover:border-gold/50'
                     }`}
-                  >
-                    {playerReveals[idx].isBluff ? 'Flagged Bluff' : 'Mark Bluff?'}
-                  </button>
-                </div>
-
-                {revealStatus === 'pending' && (
-                  <div className="flex gap-2">
-                    <button onClick={() => handleSetStatus(idx, 'show')} className="flex-1 py-3 bg-charcoal-light hover:bg-gold hover:text-black border border-gold/20 rounded-xl font-mono text-sm font-bold flex items-center justify-center gap-2 transition-all">
-                      <Eye size={16} /> SHOW
-                    </button>
-                    <button onClick={() => handleSetStatus(idx, 'muck')} className="flex-1 py-3 bg-charcoal-light hover:bg-red-500/20 hover:text-red-400 border border-white/10 rounded-xl font-mono text-sm font-bold flex items-center justify-center gap-2 transition-all text-white/50">
-                      <EyeOff size={16} /> MUCK
-                    </button>
-                  </div>
-                )}
-
-                {revealStatus === 'show' && (
-                  <div className="flex justify-between items-center bg-black/40 p-3 rounded-xl border border-gold/20">
-                    <div className="flex gap-2">
-                      {playerReveals[idx].cards.map((c, i) => (
-                        <CardComponent key={i} card={c} size="sm" />
-                      ))}
+                >
+                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                        idx === 0 ? 'bg-gold text-black' : 'bg-charcoal-light text-white'
+                        }`}>
+                        {idx === 0 ? 'U' : idx + 1}
+                        </div>
+                        <div>
+                        <h4 className="font-display font-bold text-lg text-white uppercase">{p.name}</h4>
+                        <p className="text-[10px] font-mono text-gold/60 uppercase">Stack: ${p.stack}</p>
+                        </div>
                     </div>
-                    <button onClick={() => setPickingCardsFor(idx)} className="text-[10px] font-mono text-gold/60 hover:text-gold uppercase tracking-widest underline decoration-gold/30 underline-offset-4">
-                      Edit
-                    </button>
-                  </div>
-                )}
+                    <motion.button 
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => toggleBluff(idx)}
+                        className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-all ${
+                        playerReveals[idx].isBluff 
+                        ? 'bg-amber-warm text-charcoal-dark border-amber-warm shadow-gold' 
+                        : 'bg-white/5 text-white/40 border-white/10 hover:border-gold/30'
+                        }`}
+                    >
+                        {playerReveals[idx].isBluff ? 'Flagged Bluff' : 'Mark Bluff?'}
+                    </motion.button>
+                    </div>
 
-                {revealStatus === 'muck' && (
-                  <div className="py-3 text-center bg-black/60 rounded-xl border border-white/5 text-white/30 font-mono text-xs uppercase tracking-[0.2em]">
-                    Hand Mucked
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                    <div className="min-h-[60px] flex flex-col justify-center">
+                        {revealStatus === 'pending' && (
+                        <div className="flex gap-2">
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleSetStatus(idx, 'show')} className="flex-1 py-3 bg-charcoal-light hover:bg-gold hover:text-black border border-gold/20 rounded-xl font-mono text-sm font-bold flex items-center justify-center gap-2 transition-all">
+                                <Eye size={16} /> SHOW
+                            </motion.button>
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleSetStatus(idx, 'muck')} className="flex-1 py-3 bg-charcoal-light hover:bg-red-500/20 hover:text-red-400 border border-white/10 rounded-xl font-mono text-sm font-bold flex items-center justify-center gap-2 transition-all text-white/50">
+                                <EyeOff size={16} /> MUCK
+                            </motion.button>
+                        </div>
+                        )}
+
+                        {revealStatus === 'show' && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex justify-between items-center bg-black/40 p-3 rounded-xl border border-gold/20"
+                        >
+                            <div className="flex gap-2">
+                            {playerReveals[idx].cards.map((c, i) => (
+                                <div key={i}>
+                                    <CardComponent card={c} size="sm" isRevealing={true} />
+                                </div>
+                            ))}
+                            </div>
+                            <button onClick={() => setPickingCardsFor(idx)} className="text-[10px] font-mono text-gold/60 hover:text-gold uppercase tracking-widest underline decoration-gold/30 underline-offset-4">
+                            Edit
+                            </button>
+                        </motion.div>
+                        )}
+
+                        {revealStatus === 'muck' && (
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="py-3 text-center bg-black/60 rounded-xl border border-white/5 text-white/30 font-mono text-xs uppercase tracking-[0.2em]"
+                        >
+                            Hand Mucked
+                        </motion.div>
+                        )}
+                    </div>
+                </motion.div>
+                );
+            })}
+          </AnimatePresence>
         </div>
 
         <div className="flex justify-end mt-8">
-          <button 
+          <motion.button 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: canFinalize ? 1 : 0.3 }}
+            whileHover={canFinalize ? { scale: 1.05, shadow: '0 0 20px rgba(212,175,55,0.4)' } : {}}
+            whileTap={canFinalize ? { scale: 0.95 } : {}}
             onClick={handleFinalizeClick}
             disabled={!canFinalize}
-            className="px-8 py-4 bg-gradient-to-r from-gold-dark via-gold to-gold-light text-black rounded-xl font-display font-black text-lg uppercase flex items-center gap-3 transition-all disabled:opacity-30 disabled:grayscale hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] active:scale-95"
+            className="px-8 py-4 bg-gradient-to-r from-gold-dark via-gold to-gold-light text-black rounded-xl font-display font-black text-lg uppercase flex items-center gap-3 transition-all"
           >
             Evaluate Hands & Distribute Pots <ArrowRight size={20} />
-          </button>
+          </motion.button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

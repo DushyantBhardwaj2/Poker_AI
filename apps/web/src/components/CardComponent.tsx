@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import type { Card, Suit } from '../lib/api';
 
 const suitColor: Record<Suit, string> = {
@@ -23,9 +24,44 @@ interface CardProps {
   card: Card;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
+  isRevealing?: boolean;
 }
 
-export const CardComponent: React.FC<CardProps> = ({ card, size = 'md', className = '' }) => {
+// Card Back component for hidden cards
+interface CardBackProps {
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+export const CardBack: React.FC<CardBackProps> = ({ size = 'md', className = '' }) => {
+  const sizeClasses = {
+    xs: 'w-8 h-12',
+    sm: 'w-10 h-14',
+    md: 'w-16 h-24',
+    lg: 'w-20 h-32'
+  };
+
+  return (
+    <motion.div 
+      initial={{ rotateY: 180 }}
+      animate={{ rotateY: 0 }}
+      className={`
+      relative bg-gradient-to-br from-charcoal-dark via-charcoal to-charcoal-dark
+      rounded-lg shadow-lg border-2 border-gold/20
+      flex flex-col items-center justify-center
+      ${sizeClasses[size]}
+      ${className}
+    `}>
+      {/* Gold pattern on back */}
+      <div className="absolute inset-1 border border-gold/10 rounded-[4px] pointer-events-none"></div>
+      <div className="w-3/4 h-3/4 border-2 border-gold/20 rounded flex items-center justify-center">
+        <div className="w-2 h-2 rounded-full bg-gold/30"></div>
+      </div>
+    </motion.div>
+  );
+};
+
+export const CardComponent: React.FC<CardProps> = ({ card, size = 'md', className = '', isRevealing = false }) => {
   const displayRank = rankDisplay[card.rank] || card.rank;
   
   const sizeClasses = {
@@ -38,10 +74,15 @@ export const CardComponent: React.FC<CardProps> = ({ card, size = 'md', classNam
   const cornerSize = size === 'xs' ? 'text-[8px]' : size === 'sm' ? 'text-[10px]' : 'text-xs';
 
   return (
-    <div className={`
+    <motion.div 
+      initial={isRevealing ? { rotateY: 180, scale: 0.8 } : { y: 20, opacity: 0 }}
+      animate={isRevealing ? { rotateY: 0, scale: 1 } : { y: 0, opacity: 1 }}
+      whileHover={{ y: -5, scale: 1.05 }}
+      transition={{ type: 'spring', damping: 12, stiffness: 100 }}
+      className={`
       relative bg-cream rounded-lg shadow-xl border-2 border-gold/40
       flex flex-col items-center justify-center font-bold tracking-tighter
-      card-hover select-none overflow-hidden
+      select-none overflow-hidden
       ${sizeClasses[size]}
       ${suitColor[card.suit]}
       ${className}
@@ -66,6 +107,6 @@ export const CardComponent: React.FC<CardProps> = ({ card, size = 'md', classNam
 
       {/* Decorative inner border */}
       <div className="absolute inset-1 border border-gold/10 rounded-[4px] pointer-events-none"></div>
-    </div>
+    </motion.div>
   );
 };

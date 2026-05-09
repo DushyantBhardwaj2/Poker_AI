@@ -3,14 +3,14 @@ import { usePokerStore } from '../../stores/usePokerStore';
 import { PokerAPI } from '../../lib/api';
 
 export default function ActionPanel() {
-  const { players, activePlayerIndex, sessionId, updatePlayerAction, nextPlayer, setError } = usePokerStore();
+  const { players, current_player_index, sessionId, pot, updatePlayerAction, nextPlayer, setError } = usePokerStore();
   const [isRaising, setIsRaising] = useState(false);
   const [raiseAmount, setRaiseAmount] = useState<number | ''>('');
 
-  const activePlayer = players[activePlayerIndex];
+  const activePlayer = players[current_player_index];
   
   // Calculate highest bet to determine if we can check or must call
-  const maxBet = Math.max(...players.map(p => p.bet), 0);
+  const maxBet = Math.max(...players.map(p => p.bet || 0), 0);
   const toCall = maxBet - (activePlayer?.bet || 0);
   const canCheck = toCall === 0;
 
@@ -76,8 +76,8 @@ export default function ActionPanel() {
             
             <div className="grid grid-cols-3 gap-2 flex-1">
                {/* Quick add buttons could go here */}
-               <button onClick={() => setRaiseAmount((Number(raiseAmount)||0) + potSize/2)} className="border border-gray-800 hover:bg-gray-800 text-xs font-mono text-gray-400">1/2 POT</button>
-               <button onClick={() => setRaiseAmount((Number(raiseAmount)||0) + potSize)} className="border border-gray-800 hover:bg-gray-800 text-xs font-mono text-gray-400">FULL POT</button>
+               <button onClick={() => setRaiseAmount((Number(raiseAmount)||0) + pot/2)} className="border border-gray-800 hover:bg-gray-800 text-xs font-mono text-gray-400">1/2 POT</button>
+               <button onClick={() => setRaiseAmount((Number(raiseAmount)||0) + pot)} className="border border-gray-800 hover:bg-gray-800 text-xs font-mono text-gray-400">FULL POT</button>
                <button onClick={() => setRaiseAmount(activePlayer.stack)} className="border border-red-900/50 hover:bg-red-900/20 text-xs font-mono text-red-400">MAX</button>
             </div>
 

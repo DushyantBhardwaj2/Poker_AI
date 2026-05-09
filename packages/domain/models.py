@@ -128,3 +128,72 @@ class LiveGameState(BaseModel):
     prev_street_max_bet: float = 0.0
     prev_action_bet_size: float = 0.0 # Relative (bet/pot)
 
+
+# --- UX Advancement Plan Models (Phase 1) ---
+
+class ConfidenceLevel(str, Enum):
+    HIGH = "High"
+    MEDIUM = "Medium"
+    LOW = "Low"
+    SPECULATIVE = "Speculative"
+
+class DataQuality(BaseModel):
+    """
+    Metadata about the reliability of the current AI recommendation.
+    """
+    sample_size: int
+    data_completeness: float # 0.0 to 1.0
+    confidence_score: float # 0.0 to 1.0
+    degradation_reasons: List[str] = Field(default_factory=list)
+
+class StrategicTheme(str, Enum):
+    VALUE_BETTING = "Value Betting"
+    BLUFFING = "Bluffing"
+    POT_CONTROL = "Pot Control"
+    SEMI_BLUFF = "Semi-Bluff"
+    DEFENDING_BLINDS = "Defending Blinds"
+    ISOLATION = "Isolation Play"
+    UNKNOWN = "Unknown"
+
+class Explanation(BaseModel):
+    main: str
+    pot_odds_theory: Optional[str] = None
+    fundamental_theorem: Optional[str] = None
+    bluff_context: Optional[str] = None
+
+class TacticalData(BaseModel):
+    win_probability: float
+    adjusted_win_probability: float
+    bluff_probability: float
+    pot_odds: float
+    expected_value: float
+
+class KeyFactor(BaseModel):
+    headline: str
+    description: str
+
+class AdvisorResponse(BaseModel):
+    """
+    The structured response from the AI advisor, designed to be backward compatible.
+    """
+    # --- Core Recommendation ---
+    action: ActionType
+
+    # --- Narrative Layer (New UX) ---
+    strategic_directive: str
+    confidence_level: ConfidenceLevel
+    strategic_theme: StrategicTheme
+    key_factors: List[KeyFactor] = Field(default_factory=list)
+    explanation_structured: Explanation
+    tactical_data: TacticalData
+    data_quality: Optional[DataQuality] = None
+    opponent_archetype: Optional[str] = None
+
+    # --- Legacy Fields (for backward compatibility with old UI) ---
+    explanation: str
+    ev: float
+    pot_odds: float
+    adjusted_win_probability: float
+    bluff_probability: float
+    theory_tip: Optional[str] = None
+
