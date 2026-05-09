@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Home, Play, BookOpen, GraduationCap, Settings, Menu, X, ChevronLeft, ChevronRight, LogIn, Target, LogOut, User } from 'lucide-react';
+import { Home, Play, BookOpen, GraduationCap, Settings, Menu, X, ChevronLeft, ChevronRight, LogIn, Target, LogOut, User, TrendingUp } from 'lucide-react';
 import { authClient, isAuthEnabled } from "../lib/auth";
 
 import { isAuthPath } from '../lib/auth-utils';
@@ -92,6 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { id: 'home', label: 'Home', icon: Home, href: '/' },
     { id: 'play', label: 'Play Game', icon: Play, href: '/play' },
+    { id: 'analytics', label: 'Analytics', icon: TrendingUp, href: '/analytics' },
     { id: 'learn', label: 'Learn Poker', icon: GraduationCap, href: '/theory' },
     { id: 'guide', label: 'Guide & Rules', icon: BookOpen, href: '/guide' },
     { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
@@ -119,9 +120,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 bg-charcoal border-r border-gold/10 transform transition-all duration-500 ease-in-out
+        fixed inset-y-0 left-0 z-50 bg-charcoal-dark/95 border-r border-white/5 transform transition-all duration-500 ease-in-out
         ${isOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'}
-        ${isCollapsed ? 'lg:w-20' : 'lg:w-72'}
+        ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}
       `}>
         {/* Collapse Toggle Desktop */}
         <button 
@@ -131,16 +132,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
 
-        <div className={`flex flex-col h-full ${isCollapsed ? 'p-4' : 'p-8'} transition-all duration-500 overflow-hidden`}>
-          <div className={`flex items-center gap-4 ${isCollapsed ? 'mb-10 justify-center' : 'mb-12'}`}>
-            <a href="/" className="flex items-center gap-4 group">
-              <div className="w-10 h-10 bg-gold rounded-xl flex items-center justify-center shadow-gold transition-transform group-hover:scale-105 shrink-0">
-                <span className="text-charcoal font-black text-xl">P</span>
+        <div className={`flex flex-col h-full ${isCollapsed ? 'p-4' : 'p-6'} transition-all duration-500 overflow-hidden`}>
+          <div className={`flex items-center gap-3 ${isCollapsed ? 'mb-8 justify-center' : 'mb-10'}`}>
+            <a href="/" className="flex items-center gap-3 group">
+              <div className="w-9 h-9 bg-gold/90 rounded-lg flex items-center justify-center shadow-gold-subtle transition-transform group-hover:scale-105 shrink-0">
+                <span className="text-charcoal font-black text-lg">P</span>
               </div>
               {!isCollapsed && (
                 <div className="animate-fade-in whitespace-nowrap">
-                  <h1 className="text-xl font-black tracking-widest text-gold uppercase">PokerSense</h1>
-                  <p className="text-[10px] text-gold/40 tracking-[0.2em] font-bold">OS v2.4 // THEORY DRIVEN</p>
+                  <h1 className="text-lg font-bold text-cream/80 tracking-wide">PokerSense</h1>
                 </div>
               )}
             </a>
@@ -158,8 +158,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     w-full flex items-center gap-4 rounded-xl transition-all duration-300 group
                     ${isCollapsed ? 'justify-center p-4' : 'px-6 py-4'}
                     ${active 
-                      ? 'bg-gold/10 text-gold border border-gold/20 shadow-gold' 
-                      : 'text-cream/40 hover:text-cream hover:bg-white/5 border border-transparent'
+                      ? 'bg-gold/5 text-gold border border-gold/10' 
+                      : 'text-cream/30 hover:text-cream hover:bg-white/5 border border-transparent'
                     }
                   `}
                   title={isCollapsed ? item.label : ''}

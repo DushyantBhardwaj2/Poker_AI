@@ -12,13 +12,16 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.9",
     "@astrojs/vercel": "^10.0.6",
     "@neondatabase/auth": "^0.3.0-beta",
     "@neondatabase/neon-js": "^0.5.0-beta",
     "astro": "^6.2.1",
     "axios": "^1.16.0",
+    "framer-motion": "^11.15.0",
     "lucide-react": "^1.14.0",
     "react-icons": "^5.6.0",
+    "typescript": "^6.0.3",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

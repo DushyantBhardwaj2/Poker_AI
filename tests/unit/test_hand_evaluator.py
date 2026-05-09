@@ -1,6 +1,6 @@
 import unittest
-from .models import Card, Rank, Suit, HandRank
-from .hand_evaluator import HandEvaluator, HandValue
+from packages.domain.models import Card, Rank, Suit, HandRank
+from packages.domain.hand_evaluator import HandEvaluator, HandValue
 
 class TestHandEvaluator(unittest.TestCase):
     def test_high_card(self):

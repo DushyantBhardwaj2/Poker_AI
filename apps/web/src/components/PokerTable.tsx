@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
-import { 
-  startGame, 
-  processAction, 
-  showdown, 
+import {
+  startGame,
+  processAction,
+  showdown,
   analyzeFull,
-  getAllStats, 
-  type GameState, 
-  type ActionType, 
+  getAllStats,
+  updatePlayerStats,
+  resetSessionStats,
+  recordHandResult,
+  type GameState,
+  type ActionType,
   type Card,
   type ActionRecord,
-  type FullAnalysisResponse
+  type FullAnalysisResponse,
+  type PlayerStatus,
+  type Player
 } from '../lib/api';
+import { usePokerStore } from '../stores/usePokerStore';
 import { SetupView } from './SetupView';
 import { CardInputView } from './CardInputView';
 import { CommunityCardsInput } from './CommunityCardsInput';
@@ -23,12 +29,9 @@ import { HandSetupView } from './HandSetupView';
 type GameView = 'setup' | 'cards' | 'tracker' | 'hand-setup';
 
 export default function PokerTable() {
+  const store = usePokerStore();
   const [gameView, setGameView] = useState<GameView>('setup');
   const [theoryMode, setTheoryMode] = useState(true);
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [actionHistory, setActionHistory] = useState<ActionRecord[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [playerStats, setPlayerStats] = useState<Record<string, any>>({});
   
   // Setup State
@@ -69,12 +72,29 @@ export default function PokerTable() {
     return () => window.removeEventListener('poker_theory_mode_change', handleTheoryChange as EventListener);
   }, []);
 
+  // Fetch opponent stats - filtered to current session players only
   const fetchStats = async () => {
     try {
-      const stats = await getAllStats();
-      setPlayerStats(stats);
-    } catch (e) { 
-      console.error("Failed to fetch stats:", e); 
+      const allStats = await getAllStats();
+
+      // Get current session player names (from Session Tracker)
+      const sessionPlayerNames = playerNames.map(n => n.trim().toLowerCase());
+
+      console.log('[PokerTable] fetchStats → session players:', sessionPlayerNames);
+      console.log('[PokerTable] fetchStats → available stats:', Object.keys(allStats));
+
+      // Filter stats to ONLY show players in current session
+      const filteredStats: Record<string, any> = {};
+      for (const [name, data] of Object.entries(allStats)) {
+        if (sessionPlayerNames.includes(name.toLowerCase())) {
+          filteredStats[name] = data;
+        }
+      }
+
+      console.log('[PokerTable] fetchStats → filtered to session:', Object.keys(filteredStats));
+      setPlayerStats(filteredStats);
+    } catch (e) {
+      console.error("Failed to fetch stats:", e);
     }
   };
 
@@ -85,93 +105,121 @@ export default function PokerTable() {
   // Reset AI when turn/round changes
   useEffect(() => {
     setFullAnalysis(null);
-  }, [gameState?.current_player_index, gameState?.round]);
+  }, [store.current_player_index, store.round]);
 
   // Auto-prompt community cards when round advances
   useEffect(() => {
-    if (!gameState) return;
-    
-    const round = gameState.round;
-    const cardsCount = gameState.community_cards.length;
+    const round = store.round;
+    const cardsCount = store.community_cards.length;
 
     if (round === 'flop' && cardsCount < 3) {
       setPickingFor('community');
-      setSelectedCards(gameState.community_cards);
+      setSelectedCards(store.community_cards);
       setGameView('cards');
     } else if (round === 'turn' && cardsCount < 4) {
       setPickingFor('community');
-      setSelectedCards(gameState.community_cards);
+      setSelectedCards(store.community_cards);
       setGameView('cards');
     } else if (round === 'river' && cardsCount < 5) {
       setPickingFor('community');
-      setSelectedCards(gameState.community_cards);
+      setSelectedCards(store.community_cards);
       setGameView('cards');
     }
-  }, [gameState?.round]);
+  }, [store.round]);
 
   // Auto-run AI on User's Turn
   useEffect(() => {
-    if (gameState && gameState.current_player_index === 0 && !fullAnalysis && !aiLoading && gameView === 'tracker') {
-      askAi();
+    if (gameView === 'tracker' && store.players.length > 0 && store.current_player_index === 0 && !aiLoading) {
+      if (!fullAnalysis) {
+        askAi();
+      }
     }
-  }, [gameState?.current_player_index, gameState?.round, gameView, actionHistory]);
+  }, [store.current_player_index, store.round, gameView]);
 
   const initGame = async (isNextHand = false) => {
-    setLoading(true);
-    setError(null);
+    store.setProcessing(true);
+    store.setError(null);
     setShowdownResult(null);
-    setActionHistory([]);
-    try {
-      let names = playerNames.map(n => n.trim() || 'Unknown');
-      let stacks = Array.from({ length: names.length }, () => initialStack);
-      let dIdx = 0;
 
-      if (isNextHand && gameState) {
-        // Preparation for Hand Setup View
-        const setupPlayers = gameState.players.map(p => ({ 
-          name: p.name, 
-          stack: p.stack 
-        }));
-        
-        const nextDIdx = (gameState.dealer_index + 1) % setupPlayers.length;
-        
-        setHandSetupPlayers(setupPlayers);
-        setManualDealer(nextDIdx);
-        
-        // Default blinds rotation
-        const num = setupPlayers.length;
-        if (num === 2) {
-          setManualSB(nextDIdx);
-          setManualBB((nextDIdx + 1) % num);
-        } else {
-          setManualSB((nextDIdx + 1) % num);
-          setManualBB((nextDIdx + 2) % num);
-        }
-        
-        setGameView('hand-setup');
-        setLoading(false);
-        return;
+    // Reset session stats for baseline comparison on new session
+    if (!isNextHand && !store.sessionId) {
+      try {
+        await resetSessionStats();
+      } catch (e) {
+        console.log("Session reset skipped (expected if not authenticated)");
       }
+    }
 
-      const state = await startGame(names, stacks, bigBlind / 2, bigBlind, dIdx);
-      setGameState(state);
+    try {
+      // Session Tracker players = single source of truth
+      const names = playerNames.map(n => n.trim() || 'Unknown');
+      const stacks = Array.from({ length: names.length }, () => initialStack);
+
+      console.log('[PokerTable] initGame → players from Session Tracker:', names);
+      console.log('[PokerTable] initGame → stacks:', stacks);
+
+      const state = await startGame(names, stacks, bigBlind / 2, bigBlind, 0);
+
+      console.log('[PokerTable] initGame → game state received:', state.players?.map(p => p.name));
+
+      // Store is the single source of truth for game state
+      store.setSession(state.sessionId || 'local');
+      store.setPlayers(state.players);
+      store.updateBoardCards(state.community_cards);
+      store.advanceStreet(state.round);
+
+      usePokerStore.setState({
+        pot: state.pot,
+        current_bet: state.current_bet,
+        last_raise_amount: state.last_raise_amount,
+        current_player_index: state.current_player_index,
+        dealer_index: state.dealer_index,
+        small_blind: state.small_blind,
+        big_blind: state.big_blind,
+        round: state.round,
+        community_cards: state.community_cards,
+        pots: state.pots
+      });
+
+      // Initialize hand setup from Session Tracker players
+      const setupPlayers = names.map((name, i) => ({ name, stack: initialStack }));
+      setHandSetupPlayers(setupPlayers);
+
+      // Set default roles
+      const num = names.length;
+      setManualDealer(0);
+      setManualSB(num > 1 ? 1 : 0);
+      setManualBB(num > 2 ? 2 : (num > 1 ? 1 : 0));
+
+      // Go to card input
       setPickingFor('hole');
       setSelectedCards([]);
       setGameView('cards');
+
+      // Fetch ALL opponent stats INCLUDING newly added players
+      setTimeout(() => {
+        console.log('[PokerTable] Fetching opponent stats after session start');
+        fetchStats();
+      }, 500);
     } catch (err: any) {
-      setError(err.message || "Failed to start session. Verify API connectivity.");
+      store.setError(err.message || "Failed to start session.");
     } finally {
-      setLoading(false);
+      store.setProcessing(false);
     }
   };
 
   const confirmHandSetup = async () => {
-    setLoading(true);
-    setError(null);
+    store.setProcessing(true);
+    store.setError(null);
     try {
       const names = handSetupPlayers.map(p => p.name);
       const stacks = handSetupPlayers.map(p => p.stack);
-      
+
+      console.log('[PokerTable] confirmHandSetup → players:', names, 'handSetupPlayers:', handSetupPlayers);
+
+      // Fetch ALL opponent stats BEFORE starting new hand
+      setTimeout(() => fetchStats(), 300);
+
       const state = await startGame(
         names, 
         stacks, 
@@ -182,14 +230,31 @@ export default function PokerTable() {
         manualBB
       );
       
-      setGameState(state);
+      // Sync store
+      usePokerStore.setState({
+        players: state.players,
+        community_cards: state.community_cards,
+        pots: state.pots,
+        pot: state.pot,
+        current_bet: state.current_bet,
+        last_raise_amount: state.last_raise_amount,
+        current_player_index: state.current_player_index,
+        dealer_index: state.dealer_index,
+        round: state.round,
+        small_blind: state.small_blind,
+        big_blind: state.big_blind
+      });
+
       setPickingFor('hole');
       setSelectedCards([]);
       setGameView('cards');
+
+      // Fetch opponent stats for ALL players
+      setTimeout(() => fetchStats(), 500);
     } catch (err: any) {
-      setError(err.message || "Failed to start hand.");
+      store.setError(err.message || "Failed to start hand.");
     } finally {
-      setLoading(false);
+      store.setProcessing(false);
     }
   };
 
@@ -198,7 +263,6 @@ export default function PokerTable() {
     [newPlayers[idx1], newPlayers[idx2]] = [newPlayers[idx2], newPlayers[idx1]];
     setHandSetupPlayers(newPlayers);
     
-    // Also adjust indices if they were swapped
     if (manualDealer === idx1) setManualDealer(idx2);
     else if (manualDealer === idx2) setManualDealer(idx1);
     
@@ -217,8 +281,8 @@ export default function PokerTable() {
 
     if (pickingFor === 'hole' && selectedCards.length < 2) {
       setSelectedCards([...selectedCards, card]);
-    } else if (pickingFor === 'community' && gameState) {
-      const round = gameState.round;
+    } else if (pickingFor === 'community') {
+      const round = store.round;
       let maxAllowed = 0;
       
       if (round === 'flop') maxAllowed = 3;
@@ -232,130 +296,105 @@ export default function PokerTable() {
   };
 
   const confirmCards = () => {
-    if (!gameState) return;
-    const newState = { ...gameState };
     if (pickingFor === 'hole') {
       if (selectedCards.length !== 2) return;
-      newState.players[0].hole_cards = selectedCards;
+      const updatedPlayers = [...store.players];
+      updatedPlayers[0].hole_cards = selectedCards;
+      store.setPlayers(updatedPlayers);
       setSelectedCards([]);
       setGameView('tracker');
     } else {
-      const round = gameState.round;
+      const round = store.round;
       const count = selectedCards.length;
       
       if (round === 'flop' && count !== 3) return;
       if (round === 'turn' && count !== 4) return;
       if (round === 'river' && count !== 5) return;
 
-      newState.community_cards = selectedCards;
+      store.updateBoardCards(selectedCards);
       setGameView('tracker');
     }
-    setGameState(newState);
   };
 
   const handleAction = async (type: ActionType, amount: number = 0) => {
-    if (!gameState) return;
-    setLoading(true);
-    setError(null);
+    store.setProcessing(true);
+    store.setError(null);
     try {
-      // Track history locally for AI analysis
-      const actingPlayer = gameState.players[gameState.current_player_index];
-      const newAction: ActionRecord = {
-        player_name: actingPlayer.name,
-        action_type: type,
-        amount: amount,
-        street: gameState.round
-      };
+      const actingPlayer = store.players[store.current_player_index];
+      
+      // Optimistic update
+      store.updatePlayerAction(actingPlayer.name, type, amount);
 
-      const newState = await processAction(gameState, {
-        player_index: gameState.current_player_index,
+      const newState = await processAction({
+        players: store.players,
+        community_cards: store.community_cards,
+        pots: store.pots,
+        pot: store.pot,
+        current_bet: store.current_bet,
+        last_raise_amount: store.last_raise_amount,
+        current_player_index: store.current_player_index,
+        dealer_index: store.dealer_index,
+        round: store.round,
+        small_blind: store.small_blind,
+        big_blind: store.big_blind
+      }, {
+        player_index: store.current_player_index,
         action_type: type,
         amount
       });
       
-      setGameState(newState);
-      setActionHistory(prev => [...prev, newAction]);
+      // Sync store with actual server state
+      usePokerStore.setState({
+        players: newState.players,
+        community_cards: newState.community_cards,
+        pots: newState.pots,
+        pot: newState.pot,
+        current_bet: newState.current_bet,
+        last_raise_amount: newState.last_raise_amount,
+        current_player_index: newState.current_player_index,
+        dealer_index: newState.dealer_index,
+        round: newState.round,
+        small_blind: newState.small_blind,
+        big_blind: newState.big_blind
+      });
       
-      const activePlayers = newState.players.filter(p => !p.is_folded);
+      const activePlayers = newState.players.filter(p => p.status !== 'folded');
       if (newState.round === 'showdown') {
         if (activePlayers.length === 1) {
-          // Everyone else folded, auto-resolve without picking winners
           handleShowdown([]);
         } else {
           setPickingWinner(true);
         }
       }
     } catch (err: any) {
-      setError(err.message || "Action rejected. Check game rules.");
+      store.setError(err.message || "Action rejected.");
     } finally {
-      setLoading(false);
+      store.setProcessing(false);
     }
-  };
-
-  const handleRefillStack = (playerIndex: number, amount: number) => {
-    if (!gameState) return;
-    const newState = { ...gameState };
-    newState.players[playerIndex].stack += amount;
-    setGameState(newState);
-  };
-
-  const handleUpdatePlayerStatus = (playerIndex: number, status: PlayerStatus) => {
-    if (!gameState) return;
-    const newState = { ...gameState };
-    const p = newState.players[playerIndex];
-    
-    // Toggle sitting out
-    if (status === 'sitting-out') {
-      p.status = p.status === 'sitting-out' ? 'active' : 'sitting-out';
-    } else {
-      p.status = status;
-    }
-    
-    // If it was the current player's turn and they sat out, advance turn
-    if (newState.current_player_index === playerIndex && p.status === 'sitting-out') {
-       // Need to find next active player
-       let nextIdx = (playerIndex + 1) % newState.players.length;
-       let loops = 0;
-       while (newState.players[nextIdx].status !== 'active' && loops < newState.players.length) {
-         nextIdx = (nextIdx + 1) % newState.players.length;
-         loops++;
-       }
-       newState.current_player_index = nextIdx;
-    }
-
-    setGameState(newState);
-  };
-
-  const handleRemovePlayer = (playerIndex: number) => {
-    if (!gameState || gameState.players.length <= 2) {
-      setError("Cannot have fewer than 2 players.");
-      return;
-    }
-    const newState = { ...gameState };
-    newState.players.splice(playerIndex, 1);
-    
-    // Adjust indices
-    if (newState.current_player_index >= playerIndex) {
-      newState.current_player_index = Math.max(0, newState.current_player_index - 1);
-    }
-    if (newState.dealer_index >= playerIndex) {
-      newState.dealer_index = Math.max(0, newState.dealer_index - 1);
-    }
-
-    setGameState(newState);
   };
 
   const handleShowdown = async (playerHands: { playerIndex: number; cards: Card[] }[], blufferNames: string[] = []) => {
-    if (!gameState) return;
-    setLoading(true);
+    store.setProcessing(true);
     try {
-      const stateWithReveals = { ...gameState };
-      playerHands.forEach(ph => {
-        stateWithReveals.players[ph.playerIndex].hole_cards = ph.cards;
-      });
+      const stateWithReveals = {
+        players: store.players.map((p, i) => {
+            const ph = playerHands.find(h => h.playerIndex === i);
+            return ph ? { ...p, hole_cards: ph.cards } : p;
+        }),
+        community_cards: store.community_cards,
+        pots: store.pots,
+        pot: store.pot,
+        current_bet: store.current_bet,
+        last_raise_amount: store.last_raise_amount,
+        current_player_index: store.current_player_index,
+        dealer_index: store.dealer_index,
+        round: store.round,
+        small_blind: store.small_blind,
+        big_blind: store.big_blind
+      };
 
-      const res = await showdown(stateWithReveals, blufferNames); 
-      
+      const res = await showdown(stateWithReveals, blufferNames);
+
       const winnersMap = new Map<string, number>();
       if ((res as any).result && Array.isArray((res as any).result.pots_results)) {
         (res as any).result.pots_results.forEach((potRes: any) => {
@@ -372,73 +411,145 @@ export default function PokerTable() {
         winners: mappedWinners,
         pots_results: (res as any).result.pots_results
       };
-      
+
+      // Record hand result for session analytics
+      try {
+        const userName = playerNames[0];
+        const userWin = mappedWinners.find(w => w.name === userName);
+        const userContributed = store.players[0].total_contributed || 0;
+        const netWinnings = (userWin ? userWin.amount : 0) - userContributed;
+        
+        let outcome: 'win' | 'loss' | 'tie' = 'loss';
+        if (userWin) {
+          outcome = netWinnings > 0 ? 'win' : (netWinnings === 0 ? 'tie' : 'loss');
+        }
+
+        await recordHandResult({
+          session_id: store.sessionId && store.sessionId !== 'local' ? store.sessionId : undefined,
+          result: outcome,
+          amount_won: netWinnings,
+          street: store.round,
+          pot_size: store.pot,
+          your_cards: store.players[0].hole_cards,
+          community_cards: store.community_cards,
+          action_count: 0, 
+          duration_seconds: 0,
+          tactical_data: fullAnalysis?.advice?.tactical_data ? {
+            ...fullAnalysis.advice.tactical_data,
+            verdict: fullAnalysis.advice.action,
+            strategic_theme: fullAnalysis.advice.strategic_theme,
+            confidence: fullAnalysis.advice.confidence_level
+          } : undefined
+        });
+      } catch (analyticsErr) {
+        console.error("Failed to record hand analytics:", analyticsErr);
+      }
+
+      // Update opponent stats
+      try {
+        for (const player of store.players) {
+          if (player.name === "You") continue;
+          await updatePlayerStats({
+            player_name: player.name,
+            vpip_this_hand: player.vpip_this_hand || false,
+            pfr_this_hand: player.pfr_this_hand || false,
+            is_bluff: blufferNames.includes(player.name),
+            called_showdown: player.hole_cards.length === 2 && player.status !== 'folded',
+            won_showdown: mappedWinners.some(w => w.name === player.name),
+            bet_amount: player.total_contributed || 0,
+            call_amount: player.current_bet || 0
+          });
+        }
+      } catch (statsErr) {
+        console.error("Failed to update player stats:", statsErr);
+      }
+
       setShowdownResult(manualResult);
-      setGameState(res.new_state);
+      
+      // Sync store with new state
+      usePokerStore.setState({
+        players: res.new_state.players,
+        community_cards: res.new_state.community_cards,
+        pots: res.new_state.pots,
+        pot: res.new_state.pot,
+        current_bet: res.new_state.current_bet,
+        last_raise_amount: res.new_state.last_raise_amount,
+        current_player_index: res.new_state.current_player_index,
+        dealer_index: res.new_state.dealer_index,
+        round: res.new_state.round,
+        small_blind: res.new_state.small_blind,
+        big_blind: res.new_state.big_blind
+      });
+
       setPickingWinner(false);
-      setActionHistory([]); // Reset history for new hand
-      await fetchStats(); 
+      await fetchStats();
     } catch (err: any) {
-      setError("Failed to finalize hand: " + err.message);
+      store.setError("Failed to finalize hand: " + err.message);
     } finally {
-      setLoading(false);
+      store.setProcessing(false);
     }
   };
 
   const askAi = async () => {
-    if (!gameState) return;
-    const me = gameState.players[0];
-    if (me.hole_cards.length !== 2) {
-      setError("Hole cards missing. Input your cards to enable AI analysis.");
-      return;
-    }
+    if (store.players.length === 0) return;
+    const me = store.players[0];
+    if (me.hole_cards.length !== 2) return;
 
     setAiLoading(true);
+    store.setError(null);
     try {
-      // Find the last acting opponent to analyze for bluffing
-      // If no history, analyze the second player (default)
-      const opponentName = actionHistory.length > 0 
-        ? actionHistory[actionHistory.length - 1].player_name 
-        : (gameState.players.length > 1 ? gameState.players[1].name : "Unknown");
+      // Find the last acting opponent
+      const opponentName = store.players.length > 1 ? store.players[1].name : "Unknown";
 
       const analysis = await analyzeFull(
-        gameState,
-        actionHistory,
+        {
+            players: store.players,
+            community_cards: store.community_cards,
+            pots: store.pots,
+            pot: store.pot,
+            current_bet: store.current_bet,
+            last_raise_amount: store.last_raise_amount,
+            current_player_index: store.current_player_index,
+            dealer_index: store.dealer_index,
+            round: store.round,
+            small_blind: store.small_blind,
+            big_blind: store.big_blind
+        },
+        [], // history - for now passing empty, store doesn't track records yet
         opponentName,
         me.hole_cards,
-        1000 // simulations
+        1000
       );
       
       setFullAnalysis(analysis);
     } catch (err: any) {
-      setError("AI Engine Error: " + (err.message || "Processing failure"));
+      store.setError("AI Engine Error: " + (err.message || "Processing failure"));
     } finally {
       setAiLoading(false);
     }
   };
 
   return (
-    <div className="w-full animate-fade-in flex flex-col items-center">
-      {error && (
-        <div className="max-w-md w-full mb-8 glass-dark border border-red-500/20 text-red-400 p-5 rounded-2xl flex items-start gap-4 animate-slide-up relative z-50">
+    <div className="w-full animate-fade-in flex flex-col items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {store.error && (
+        <div className="max-w-md w-full mb-8 glass-dark border border-red-500/20 text-red-400 p-5 rounded-2xl flex items-start gap-4 animate-slide-up relative z-[100] shadow-lg shadow-red-500/10">
           <AlertCircle size={24} className="mt-0.5 shrink-0" />
           <div className="space-y-1">
             <h4 className="font-black text-[10px] uppercase tracking-widest text-red-500/80">System Alert</h4>
-            <p className="text-sm font-medium leading-relaxed">{error}</p>
+            <p className="text-sm font-medium leading-relaxed">{store.error}</p>
             <button 
-              onClick={() => setError(null)} 
+              onClick={() => store.setError(null)} 
               className="mt-3 text-[10px] font-black uppercase tracking-widest bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-lg border border-red-500/20 transition-all active:scale-95"
             >
               Dismiss Alert
             </button>
-
           </div>
         </div>
       )}
 
-      {pickingWinner && gameState ? (
+      {pickingWinner && store.players.length > 0 ? (
         <div className="flex justify-center w-full">
-          <ShowdownLogicView gameState={gameState} onFinalize={handleShowdown} />
+          <ShowdownLogicView gameState={store as unknown as GameState} onFinalize={handleShowdown} />
         </div>
       ) : (
         <>
@@ -447,7 +558,7 @@ export default function PokerTable() {
               playerNames={playerNames} setPlayerNames={setPlayerNames}
               initialStack={initialStack} setInitialStack={setInitialStack}
               bigBlind={bigBlind} setBigBlind={setBigBlind}
-              loading={loading} onStart={initGame}
+              loading={store.isProcessing} onStart={initGame}
             />
           )}
 
@@ -467,15 +578,13 @@ export default function PokerTable() {
           )}
 
           {gameView === 'cards' && (
-            pickingFor === 'community' && gameState ? (
+            pickingFor === 'community' ? (
               <CommunityCardsInput 
-                round={gameState.round}
-                existingCards={gameState.community_cards}
-                holeCards={gameState.players[0]?.hole_cards || []}
+                round={store.round}
+                existingCards={store.community_cards}
+                holeCards={store.players[0]?.hole_cards || []}
                 onConfirm={(cards) => {
-                  const newState = { ...gameState };
-                  newState.community_cards = cards;
-                  setGameState(newState);
+                  store.updateBoardCards(cards);
                   setGameView('tracker');
                 }}
               />
@@ -483,31 +592,39 @@ export default function PokerTable() {
               <CardInputView 
                 pickingFor={pickingFor} selectedCards={selectedCards}
                 onCardSelect={handleCardSelect} onConfirm={confirmCards}
-                onReset={() => setSelectedCards([])} round={gameState?.round}
-                takenCards={gameState?.community_cards || []}
+                onReset={() => setSelectedCards([])} round={store.round}
+                takenCards={store.community_cards}
               />
             )
           )}
 
-          {gameView === 'tracker' && gameState && (
-            <div className="w-full flex flex-col lg:flex-row gap-10">
+          {gameView === 'tracker' && store.players.length > 0 && (
+            <div className="w-full flex flex-col lg:flex-row gap-8">
               <ActionTracker 
-                gameState={gameState} onAction={handleAction}
-                onRefillStack={handleRefillStack}
+                gameState={store as unknown as GameState} 
+                onAction={handleAction}
+                onRefillStack={store.updatePlayerStack}
                 onOpenCardInput={() => {
                   setPickingFor('community');
-                  setSelectedCards(gameState.community_cards);
+                  setSelectedCards(store.community_cards);
                   setGameView('cards');
                 }}
-                onUpdatePlayerStatus={handleUpdatePlayerStatus}
-                onRemovePlayer={handleRemovePlayer}
+                onUpdatePlayerStatus={store.toggleSitOut}
+                onRemovePlayer={store.removePlayer}
+                onUpdateStack={store.updatePlayerStack}
+                onReorderPlayers={store.reorderPlayers}
+                onRotateDealer={store.rotateDealer}
+                onUndo={store.undoAction}
+                hasUndo={store.undoStack.length > 0}
               />
-              <AIDashboard 
-                fullAnalysis={fullAnalysis} loading={aiLoading} 
+              <AIDashboard
+                fullAnalysis={fullAnalysis} loading={aiLoading}
                 onRunAnalysis={askAi}
                 showdownResult={showdownResult} playerStats={playerStats}
                 onNewHand={initGame} theoryMode={theoryMode}
                 userName={playerNames[0]}
+                isPlayerTurn={store.current_player_index === 0}
+                hasCards={store.players[0]?.hole_cards.length === 2}
               />
             </div>
           )}

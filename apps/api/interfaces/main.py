@@ -5,7 +5,8 @@ from apps.api.interfaces.game_controller import router as game_router
 from apps.api.interfaces.ai_controller import router as ai_router
 from apps.api.interfaces.stats_controller import router as stats_router
 from apps.api.infrastructure.logger import setup_logging, get_logger
-from packages.domain.database import Base, engine
+from packages.domain.database import Base, engine, SessionLocal
+from sqlalchemy import text
 import os
 
 # Initialize structured logging
@@ -25,6 +26,55 @@ def on_startup():
         logger.info("Database tables verified/created successfully")
     except Exception as e:
         logger.error("Error creating database tables", error=str(e))
+
+    # Run migrations for missing columns
+    _run_column_migrations()
+
+
+def _run_column_migrations():
+    """Add missing columns to existing tables"""
+    from packages.domain.database import is_sqlite
+    db = SessionLocal()
+    try:
+        if is_sqlite:
+            # SQLite: use PRAGMA to check columns
+            result = db.execute(text("PRAGMA table_info(game_sessions)"))
+            columns = [row[1] for row in result.fetchall()]
+
+            if 'total_winnings' not in columns:
+                db.execute(text("ALTER TABLE game_sessions ADD COLUMN total_winnings FLOAT DEFAULT 0.0"))
+                logger.info("Added total_winnings column to game_sessions")
+
+            if 'ended_at' not in columns:
+                db.execute(text("ALTER TABLE game_sessions ADD COLUMN ended_at TIMESTAMP"))
+                logger.info("Added ended_at column to game_sessions")
+        else:
+            # PostgreSQL: try adding columns directly, ignore if already exist
+            try:
+                db.execute(text("ALTER TABLE game_sessions ADD COLUMN total_winnings FLOAT DEFAULT 0.0"))
+                logger.info("Added total_winnings column to game_sessions")
+            except Exception as e:
+                if "duplicate" in str(e).lower():
+                    logger.info("total_winnings column already exists")
+                else:
+                    logger.warning(f"Could not add total_winnings: {e}")
+
+            try:
+                db.execute(text("ALTER TABLE game_sessions ADD COLUMN ended_at TIMESTAMPTZ"))
+                logger.info("Added ended_at column to game_sessions")
+            except Exception as e:
+                if "duplicate" in str(e).lower():
+                    logger.info("ended_at column already exists")
+                else:
+                    logger.warning(f"Could not add ended_at: {e}")
+
+        db.commit()
+        logger.info("Column migrations completed")
+    except Exception as e:
+        logger.error(f"Column migration failed: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 # Configure CORS for production
 origins = []

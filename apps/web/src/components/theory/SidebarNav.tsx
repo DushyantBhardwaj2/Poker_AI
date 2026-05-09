@@ -90,7 +90,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ data, activeChapterId, o
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }

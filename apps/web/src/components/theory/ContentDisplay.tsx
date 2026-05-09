@@ -204,14 +204,14 @@ export const ContentDisplay: React.FC<ContentDisplayProps> = ({ chapter, nextCha
         </footer>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;
         }

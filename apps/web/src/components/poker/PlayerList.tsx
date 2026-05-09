@@ -2,14 +2,14 @@ import React from 'react';
 import { usePokerStore } from '../../stores/usePokerStore';
 
 export default function PlayerList() {
-  const { players, activePlayerIndex } = usePokerStore();
+  const { players, current_player_index } = usePokerStore();
 
   return (
     <div className="flex flex-col gap-3 h-full">
       <div className="text-xs tracking-widest text-emerald-500/70 uppercase mb-2">Target Operators</div>
       
       {players.map((player, index) => {
-        const isActive = index === activePlayerIndex;
+        const isActive = index === current_player_index;
         const isFolded = player.status === 'folded';
         const isAllIn = player.status === 'all-in';
 
@@ -44,7 +44,7 @@ export default function PlayerList() {
                 <span>VPIP: {player.vpip || 0}%</span>
                 <span>PFR: {player.pfr || 0}%</span>
               </div>
-              {player.bet > 0 && (
+              {(player.bet || 0) > 0 && (
                 <div className="text-emerald-400 font-mono text-sm bg-emerald-950/50 px-2 py-1 border border-emerald-900/50">
                   Bet: ${player.bet}
                 </div>
