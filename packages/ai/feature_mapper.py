@@ -87,15 +87,19 @@ class FeatureMapper:
 
         starting_stack = active_player.stack + active_player.total_contributed
         
+        bb = getattr(state, 'big_blind', 1.0)
+        if not bb or bb <= 0:
+            bb = 1.0
+            
         return LiveGameState(
             street=street,
-            bet_amount=last_bet_amount,
-            pot_before=pot_before,
-            starting_stack=starting_stack,
+            bet_amount=last_bet_amount / bb,
+            pot_before=pot_before / bb,
+            starting_stack=starting_stack / bb,
             board_cards=board_cards,
             vpip=vpip,
             pfr=pfr,
             prev_street_dryness=prev_street_dryness,
-            prev_street_max_bet=prev_street_max_bet,
+            prev_street_max_bet=prev_street_max_bet / bb,
             prev_action_bet_size=prev_action_rel_bet_size
         )

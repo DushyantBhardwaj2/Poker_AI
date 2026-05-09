@@ -367,7 +367,9 @@ export default function PokerTable() {
         }
       }
     } catch (err: any) {
-      store.setError(err.message || "Action rejected.");
+      console.error("Action failed:", err);
+      store.setError(err.message || "Action rejected. Rolling back state.");
+      store.undoAction(); // Rollback to match database reality
     } finally {
       store.setProcessing(false);
     }

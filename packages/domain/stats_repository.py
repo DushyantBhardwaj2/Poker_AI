@@ -222,6 +222,17 @@ class StatsRepository:
 
         # Update session features
         session_features["hands_played"] = session_features.get("hands_played", 0) + 1
+        
+        recent_history = session_features.get("recent_history", [])
+        recent_history.append({
+            "vpip": vpip_this_hand,
+            "pfr": pfr_this_hand,
+            "bets": bet_amount,
+            "calls": call_amount
+        })
+        if len(recent_history) > 10:
+            recent_history = recent_history[-10:]
+        session_features["recent_history"] = recent_history
 
         # Core stats
         features["vpip_count"] = features.get("vpip_count", 0) + (1 if vpip_this_hand else 0)
@@ -404,16 +415,31 @@ class StatsRepository:
 
         # Calculate session vs baseline comparison
         session_features = stats.session_features if stats and stats.session_features else {}
-        
-        # VPIP Drift
+
+        # Rolling window: last 10 hands from session (more responsive than lifetime)
+        recent_history = session_features.get("recent_history", [])
+        rolling_hands = len(recent_history)
+
+        # VPIP Drift - use rolling window instead of requiring 50+ lifetime hands
         baseline_vpip = (features.get("vpip_count", 0) or 0) / max(1, hands) * 100 if hands > 0 else 0
-        session_vpip = (session_features.get("vpip_count", 0) or 0) / max(1, session_features.get("hands_played", 1)) * 100
-        vpip_shifting = abs(session_vpip - baseline_vpip) > 10 if hands > 50 else False
-        
+        if rolling_hands > 0:
+            session_vpip = sum(1 for h in recent_history if h.get("vpip")) / rolling_hands * 100
+        else:
+            session_vpip = 0
+
+        # Require smaller sample for shift detection: 10 rolling vs 50 lifetime, 3+ session vs 10
+        vpip_shifting = abs(session_vpip - baseline_vpip) > 10 if rolling_hands >= 3 else False
+
         # Aggression Drift
         baseline_agg = (features.get("total_bets", 0) or 0) / max(1, features.get("total_calls", 1))
-        session_agg = (session_features.get("session_bets", 0) or 0) / max(1, session_features.get("session_calls", 1))
-        agg_shifting = (session_agg > baseline_agg * 1.5 or session_agg < baseline_agg * 0.5) if hands > 50 and session_features.get("hands_played", 0) > 10 else False
+        if rolling_hands > 0:
+            session_bets = sum(h.get("bets", 0) for h in recent_history)
+            session_calls = sum(h.get("calls", 0) for h in recent_history)
+            session_agg = session_bets / max(1, session_calls)
+        else:
+            session_agg = baseline_agg
+            
+        agg_shifting = (session_agg > baseline_agg * 1.5 or session_agg < baseline_agg * 0.5) if rolling_hands >= 3 else False
 
         is_shifting = vpip_shifting or agg_shifting
         
