@@ -146,7 +146,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </a>
           </div>
 
-          <nav className="flex-1 space-y-2">
+          <nav className="flex-1 space-y-1.5">
             {navItems.map((item) => {
               const active = isActive(item.href);
               return (
@@ -156,15 +156,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => setIsOpen(false)}
                   className={`
                     w-full flex items-center gap-4 rounded-xl transition-all duration-300 group
-                    ${isCollapsed ? 'justify-center p-4' : 'px-6 py-4'}
-                    ${active 
-                      ? 'bg-gold/5 text-gold border border-gold/10' 
-                      : 'text-cream/30 hover:text-cream hover:bg-white/5 border border-transparent'
+                    ${isCollapsed ? 'justify-center p-3' : 'px-5 py-3.5'}
+                    ${active
+                      ? 'bg-gold/5 text-gold border border-gold/10'
+                      : 'text-cream/50 hover:text-cream/80 hover:bg-white/5 border border-transparent'
                     }
                   `}
                   title={isCollapsed ? item.label : ''}
                 >
-                  <item.icon size={20} className={`${active ? 'text-gold' : 'group-hover:text-gold'} shrink-0`} />
+                  <item.icon size={18} className={`${active ? 'text-gold' : 'text-cream/40 group-hover:text-gold'} shrink-0`} />
                   {!isCollapsed && (
                     <span className="font-bold tracking-widest text-xs uppercase animate-fade-in whitespace-nowrap">{item.label}</span>
                   )}
@@ -173,19 +173,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             })}
 
             {mounted && !user && (
-                <div className="pt-4 space-y-2">
+                <div className="pt-4 space-y-1.5">
                   <a
                     href={authNavItem.href}
                     onClick={() => setIsOpen(false)}
                     className={`
                       w-full flex items-center gap-4 rounded-xl transition-all duration-300 group
-                      ${isCollapsed ? 'justify-center p-4' : 'px-6 py-4'}
-                      ${isActive(authNavItem.href) ? 'bg-gold/10 text-gold' : 'text-cream/40 hover:text-cream hover:bg-white/5'}
+                      ${isCollapsed ? 'justify-center p-3' : 'px-5 py-3.5'}
+                      ${isActive(authNavItem.href) ? 'bg-gold/10 text-gold' : 'text-cream/50 hover:text-cream hover:bg-white/5'}
                       border border-transparent
                     `}
                     title={isCollapsed ? authNavItem.label : ''}
                   >
-                    <authNavItem.icon size={20} className="group-hover:text-gold shrink-0" />
+                    <authNavItem.icon size={18} className="group-hover:text-gold shrink-0" />
                     {!isCollapsed && (
                       <span className="font-bold tracking-widest text-xs uppercase animate-fade-in whitespace-nowrap">{authNavItem.label}</span>
                     )}
@@ -195,13 +195,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onClick={() => setIsOpen(false)}
                     className={`
                       w-full flex items-center gap-4 rounded-xl transition-all duration-300 group
-                      ${isCollapsed ? 'justify-center p-4' : 'px-6 py-4'}
-                      ${isActive(signupNavItem.href) ? 'bg-gold/20 text-gold shadow-gold' : 'bg-gold/5 text-gold/60 hover:bg-gold/10 hover:text-gold'}
+                      ${isCollapsed ? 'justify-center p-3' : 'px-5 py-3.5'}
+                      ${isActive(signupNavItem.href) ? 'bg-gold/20 text-gold shadow-gold' : 'bg-gold/5 text-gold/70 hover:bg-gold/10 hover:text-gold'}
                       border border-gold/10
                     `}
                     title={isCollapsed ? signupNavItem.label : ''}
                   >
-                    <signupNavItem.icon size={20} className="shrink-0" />
+                    <signupNavItem.icon size={18} className="shrink-0" />
                     {!isCollapsed && (
                       <span className="font-bold tracking-widest text-xs uppercase animate-fade-in whitespace-nowrap">{signupNavItem.label}</span>
                     )}

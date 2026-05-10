@@ -39,21 +39,21 @@ export const AuthWrapper: React.FC<AuthWrapperProps> = ({ children, currentPath 
     <div className="neon-auth-theme-wrapper">
       <AuthProvider>
         <div className="flex min-h-screen">
-          <Sidebar 
-            isCollapsed={isCollapsed} 
-            onToggleCollapse={toggleCollapse} 
+          <Sidebar
+            isCollapsed={isCollapsed}
+            onToggleCollapse={toggleCollapse}
             currentPath={currentPath}
           />
 
-          <main className={`flex-1 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-72'} flex flex-col items-center py-12 px-6 overflow-y-auto transition-all duration-500`}>
-            <div className="w-full max-w-7xl flex flex-col items-center justify-center relative z-10">
+          <main className={`flex-1 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-64'} flex flex-col items-center py-8 px-4 md:px-6 lg:px-8 overflow-y-auto transition-all duration-300`}>
+            <div className="w-full max-w-6xl flex flex-col items-center justify-center relative z-10">
               <PageGuard currentPath={currentPath}>
                 {children}
               </PageGuard>
             </div>
 
-            <footer className="mt-20 pt-16 border-t border-white/5 w-full text-gold/20 text-[10px] font-black uppercase tracking-[0.4em] flex flex-col items-center gap-4">
-              <div className="flex items-center gap-4">
+            <footer className="mt-16 pt-12 border-t border-white/5 w-full text-gold/20 text-[10px] font-black uppercase tracking-[0.3em] flex flex-col items-center gap-3">
+              <div className="flex items-center gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-terminal"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
                 <span>PokerSense OS v2.4 // THEORY DRIVEN</span>
                 <span className="w-1.5 h-1.5 bg-gold/10 rounded-full"></span>

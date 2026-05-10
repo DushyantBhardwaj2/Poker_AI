@@ -132,43 +132,43 @@ export const AnalyticsView: React.FC = () => {
         </div>
         
         {summary && (
-          <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-4 rounded-2xl">
-            <div className="w-10 h-10 bg-gold/10 rounded-xl flex items-center justify-center text-gold">
-              <Calendar size={20} />
+          <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-3 rounded-xl">
+            <div className="w-9 h-9 bg-gold/10 rounded-xl flex items-center justify-center text-gold">
+              <Calendar size={18} />
             </div>
             <div>
               <p className="text-[10px] font-black text-gold uppercase tracking-widest">Active Session</p>
-              <p className="text-xs font-mono text-white/60">{new Date(summary.start_time).toLocaleDateString()} // {new Date(summary.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+              <p className="text-xs font-mono text-white/70">{summary.start_time ? new Date(summary.start_time).toLocaleDateString() : 'N/A'} {summary.start_time ? '//' : ''} {summary.start_time ? new Date(summary.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</p>
             </div>
           </div>
         )}
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          label="Total Profit/Loss" 
-          value={`$${summary?.total_winnings.toFixed(2) || '0.00'}`} 
-          icon={TrendingUp} 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Total Profit/Loss"
+          value={`$${summary?.total_winnings.toFixed(2) || '0.00'}`}
+          icon={TrendingUp}
           trend={summary?.total_winnings && summary.total_winnings >= 0 ? 'up' : 'down'}
           subtext="Net session earnings"
         />
-        <StatCard 
-          label="Win Rate" 
-          value={`${analytics?.win_rate.toFixed(1) || '0.0'}%`} 
-          icon={Trophy} 
+        <StatCard
+          label="Win Rate"
+          value={`${analytics?.win_rate.toFixed(1) || '0.0'}%`}
+          icon={Trophy}
           subtext={`${summary?.showdown_wins || 0} hands won`}
         />
-        <StatCard 
-          label="Hands Tracked" 
-          value={summary?.total_hands.toString() || '0'} 
-          icon={Layers} 
+        <StatCard
+          label="Hands Tracked"
+          value={summary?.total_hands.toString() || '0'}
+          icon={Layers}
           subtext="Total session volume"
         />
-        <StatCard 
-          label="Avg. Hand Duration" 
-          value={`${analytics?.avg_hand_duration || 0}s`} 
-          icon={Clock} 
+        <StatCard
+          label="Avg. Duration"
+          value={`${analytics?.avg_hand_duration || 0}s`}
+          icon={Clock}
           subtext="Processing speed"
         />
       </div>
@@ -279,10 +279,10 @@ export const AnalyticsView: React.FC = () => {
 };
 
 const StatCard = ({ label, value, icon: Icon, trend, subtext }: any) => (
-  <div className="bg-charcoal-dark border border-white/5 p-6 rounded-3xl space-y-4 hover:border-gold/20 transition-all group shadow-lg">
+  <div className="bg-charcoal-dark border border-white/5 p-5 rounded-2xl space-y-3 hover:border-gold/20 transition-all group shadow-lg">
     <div className="flex justify-between items-start">
-      <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-cream/40 group-hover:bg-gold/10 group-hover:text-gold transition-all">
-        <Icon size={24} />
+      <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-cream/40 group-hover:bg-gold/10 group-hover:text-gold transition-all">
+        <Icon size={20} />
       </div>
       {trend && (
         <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
@@ -292,9 +292,9 @@ const StatCard = ({ label, value, icon: Icon, trend, subtext }: any) => (
       )}
     </div>
     <div>
-      <p className="text-[10px] font-black text-cream/30 uppercase tracking-[0.2em]">{label}</p>
-      <h2 className="text-3xl font-display font-black text-white mt-1 uppercase tracking-tight">{value}</h2>
-      <p className="text-[10px] font-mono text-gold/40 mt-2 uppercase tracking-widest">{subtext}</p>
+      <p className="text-[10px] font-black text-cream/40 uppercase tracking-[0.15em]">{label}</p>
+      <h2 className="text-2xl font-display font-black text-white mt-1 uppercase tracking-tight">{value}</h2>
+      <p className="text-[10px] font-mono text-gold/40 mt-1 uppercase tracking-widest">{subtext}</p>
     </div>
   </div>
 );

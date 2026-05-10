@@ -78,31 +78,31 @@ export function AdvisorHUD({ analysis, loading, onRefresh, hasCards = true }: Ad
     const isLowConfidence = confidence === 'Low' || confidence === 'Speculative';
 
     return (
-        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <motion.div
-            className={`glass-dark border ${confidenceStyles.border} ${confidenceStyles.dashed ? 'border-dashed' : ''} rounded-xl p-4 md:p-5 transition-all duration-700 ${confidenceStyles.shadow}`}
+            className={`glass-dark border ${confidenceStyles.border} ${confidenceStyles.dashed ? 'border-dashed' : ''} rounded-xl p-4 transition-all duration-700 ${confidenceStyles.shadow}`}
             animate={isLowConfidence ? lowConfidencePulse : {}}
           >
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
-                <BrainCircuit size={18} className={confidenceStyles.text} />
-                <h2 className={`text-base font-black tracking-wide uppercase ${confidenceStyles.text}`}>
+                <BrainCircuit size={16} className={confidenceStyles.text} />
+                <h2 className={`text-sm font-black tracking-wide uppercase ${confidenceStyles.text}`}>
                   AI Advisor
                 </h2>
                 {confidence === 'Speculative' && (
                     <Tooltip content="Recommendation based on very limited data.">
-                        <AlertTriangle size={14} className="text-red-500 animate-pulse" />
+                        <AlertTriangle size={12} className="text-red-500 animate-pulse" />
                     </Tooltip>
                 )}
                 {isLowConfidence && (
                     <motion.button
                         onClick={() => setShowDecayDetails(!showDecayDetails)}
-                        className="flex items-center gap-1 px-2 py-1 bg-black/20 border border-white/5 rounded-md hover:bg-white/5 transition-colors cursor-pointer"
+                        className="flex items-center gap-1 px-2 py-0.5 bg-black/20 border border-white/5 rounded-md hover:bg-white/5 transition-colors cursor-pointer"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                     >
                         <span className={`text-[10px] font-medium ${confidenceStyles.text}`}>Details</span>
-                        {showDecayDetails ? <ChevronUp size={12} className={confidenceStyles.text} /> : <ChevronDown size={12} className={confidenceStyles.text} />}
+                        {showDecayDetails ? <ChevronUp size={10} className={confidenceStyles.text} /> : <ChevronDown size={10} className={confidenceStyles.text} />}
                     </motion.button>
                 )}
               </div>
@@ -196,18 +196,18 @@ const StrategicView: React.FC<{ analysis: FullAnalysisResponse | null, loading: 
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <div className={`relative bg-gradient-to-br from-gold/5 via-transparent to-transparent border border-white/5 rounded-xl p-4 text-center transition-all`}>
+        <div className={`relative bg-gradient-to-br from-gold/5 via-transparent to-transparent border border-white/5 rounded-xl p-3 text-center transition-all`}>
             {isLowReliability && (
-                <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 bg-orange-500/10 border border-orange-500/20 rounded-full">
-                    <AlertTriangle size={12} className="text-orange-400" />
+                <div className="absolute top-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 bg-orange-500/10 border border-orange-500/20 rounded-full">
+                    <AlertTriangle size={10} className="text-orange-400" />
                     <span className="text-[9px] font-black text-orange-400 uppercase tracking-tighter">Low Read</span>
                 </div>
             )}
             <h3 className="text-gold/50 text-[10px] font-bold tracking-wider uppercase">Strategic Directive</h3>
-            <h1 className="text-2xl md:text-3xl font-black text-cream/90 italic uppercase tracking-tight my-2">
+            <h1 className="text-xl md:text-2xl font-black text-cream/90 italic uppercase tracking-tight my-2">
                 {advice.strategic_directive}
             </h1>
-            <p className="text-base text-cream/70 max-w-prose mx-auto font-medium leading-relaxed">
+            <p className="text-sm text-cream/70 max-w-prose mx-auto font-medium leading-relaxed">
                 "{advice.explanation_structured.main}"
             </p>
         </div>
@@ -348,32 +348,32 @@ const ExplanationSection: React.FC<{analysis: FullAnalysisResponse | null}> = ({
 
     return (
       <motion.div
-        className="glass-dark border border-white/5 rounded-xl p-4"
+        className="glass-dark border border-white/5 rounded-xl p-3"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-gold/60" />
-            <h3 className="text-sm font-bold tracking-wide uppercase text-gold/70">Strategic Logic</h3>
+            <BookOpen size={14} className="text-gold/60" />
+            <h3 className="text-xs font-bold tracking-wide uppercase text-gold/70">Strategic Logic</h3>
           </div>
           {explanation_structured.bluff_context && (
              <Tooltip content={explanation_structured.bluff_context}>
-               <div className="flex items-center gap-1.5 px-2 py-1 bg-gold/10 border border-gold/20 rounded-md">
-                 <ShieldAlert size={12} className="text-gold" />
-                 <span className="text-[10px] font-black text-gold uppercase tracking-tighter">Behavioral</span>
+               <div className="flex items-center gap-1 px-1.5 py-0.5 bg-gold/10 border border-gold/20 rounded-md">
+                 <ShieldAlert size={10} className="text-gold" />
+                 <span className="text-[9px] font-black text-gold uppercase tracking-tighter">Behavioral</span>
                </div>
              </Tooltip>
           )}
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {key_factors.map((factor, i) => {
             const isShift = factor.headline.includes('Spike') || factor.headline.includes('Shift');
             return (
               <motion.div
                   key={i}
-                  className={`flex gap-3 items-start p-3 bg-black/10 rounded-xl border ${isShift ? 'border-orange-500/30' : 'border-white/[0.02]'} hover:border-white/[0.05] transition-colors`}
+                  className={`flex gap-2.5 items-start p-2.5 bg-black/10 rounded-lg border ${isShift ? 'border-orange-500/30' : 'border-white/[0.02]'} hover:border-white/[0.05] transition-colors`}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: i * 0.05 }}
@@ -381,14 +381,14 @@ const ExplanationSection: React.FC<{analysis: FullAnalysisResponse | null}> = ({
               >
                 <div className="mt-0.5 shrink-0">
                    {isShift ? (
-                     <AlertTriangle size={18} className="text-orange-400" />
+                     <AlertTriangle size={14} className="text-orange-400" />
                    ) : (
-                     <ShieldCheck size={18} className="text-gold/60" />
+                     <ShieldCheck size={14} className="text-gold/60" />
                    )}
                 </div>
                 <div>
-                  <h4 className={`font-semibold ${isShift ? 'text-orange-400' : 'text-cream/90'} text-base leading-tight`}>{factor.headline}</h4>
-                  <p className="text-sm text-cream/60 leading-relaxed mt-1">{factor.description}</p>
+                  <h4 className={`font-semibold ${isShift ? 'text-orange-400' : 'text-cream/90'} text-sm leading-tight`}>{factor.headline}</h4>
+                  <p className="text-xs text-cream/60 leading-relaxed mt-0.5">{factor.description}</p>
                 </div>
               </motion.div>
             );
