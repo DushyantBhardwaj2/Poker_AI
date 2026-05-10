@@ -40,9 +40,9 @@ export const ActionTracker: React.FC<ActionTrackerProps> = ({
   const activePlayer = gameState.players[gameState.current_player_index];
 
   return (
-    <div className="flex-1 space-y-6 animate-fade-in relative min-h-[700px] max-w-7xl mx-auto">
+    <div className="flex-1 space-y-4 animate-fade-in relative min-h-[600px]">
       {/* 1. Spatial Virtual Table */}
-      <VirtualTable 
+      <VirtualTable
         gameState={gameState}
         onAction={onAction}
         onOpenCardInput={onOpenCardInput}
@@ -57,59 +57,59 @@ export const ActionTracker: React.FC<ActionTrackerProps> = ({
       />
 
       {/* 2. Floating Action Panel (Anchored to bottom center) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-6">
-        <div className="glass-dark border border-white/10 rounded-[32px] p-4 shadow-[0_-15px_40px_rgba(0,0,0,0.4)] relative overflow-hidden">
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-4">
+        <div className="glass-dark border border-white/10 rounded-2xl p-3 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden">
           {/* Subtle background for active player */}
           <div className="absolute inset-0 bg-gold/[0.02] pointer-events-none" />
-          
-          <div className="flex flex-col gap-4 relative z-10">
+
+          <div className="flex flex-col gap-3 relative z-10">
             {/* Active Player Info Header */}
-            <div className="flex justify-between items-center border-b border-white/5 pb-3">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-gold text-charcoal-dark flex items-center justify-center font-black text-lg shadow-gold">
+            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gold text-charcoal-dark flex items-center justify-center font-black text-sm shadow-gold">
                   {gameState.current_player_index === 0 ? 'U' : gameState.current_player_index + 1}
                 </div>
                 <div>
-                   <h3 className="text-lg font-black text-white uppercase tracking-tight">{activePlayer.name}'s Turn</h3>
-                   <div className="flex items-center gap-2 text-[10px] font-bold text-gold/60 uppercase tracking-widest">
-                     <Coins size={10} /> ${activePlayer.stack.toLocaleString()} available
+                   <h3 className="text-base font-black text-white uppercase tracking-tight">{activePlayer.name}'s Turn</h3>
+                   <div className="flex items-center gap-1.5 text-[9px] font-bold text-gold/60 uppercase tracking-widest">
+                     <Coins size={9} /> ${activePlayer.stack.toLocaleString()} available
                    </div>
                 </div>
               </div>
 
               {/* Quick Refill Access */}
-              <button 
+              <button
                 onClick={() => setRefillingPlayerIdx(gameState.current_player_index)}
-                className="p-2 bg-white/5 hover:bg-gold/10 text-gold rounded-xl border border-white/10 hover:border-gold/20 transition-all"
+                className="p-1.5 bg-white/5 hover:bg-gold/10 text-gold rounded-lg border border-white/10 hover:border-gold/20 transition-all"
                 title="Quick Refill"
               >
-                <Wallet size={18} />
+                <Wallet size={16} />
               </button>
             </div>
 
             {/* Main Action Group */}
             <div className="flex gap-2">
               {raisingPlayerIdx !== null ? (
-                <div className="w-full flex flex-col gap-4 animate-scale-in">
-                  <div className="flex items-center gap-4">
+                <div className="w-full flex flex-col gap-3 animate-scale-in">
+                  <div className="flex items-center gap-3">
                     <div className="relative flex-1">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gold font-black text-2xl">$</span>
-                      <input 
-                        type="number" 
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gold font-black text-xl">$</span>
+                      <input
+                        type="number"
                         value={raiseAmount}
                         onChange={e => setRaiseAmount(e.target.value)}
-                        className="w-full bg-charcoal-dark border-2 border-gold/30 rounded-2xl py-3 pl-10 pr-4 text-cream outline-none focus:border-gold font-mono text-2xl shadow-inner"
+                        className="w-full bg-charcoal-dark border-2 border-gold/30 rounded-xl py-2 pl-8 pr-3 text-cream outline-none focus:border-gold font-mono text-xl shadow-inner"
                         autoFocus
                       />
                     </div>
-                    <button 
+                    <button
                       onClick={() => setRaisingPlayerIdx(null)}
-                      className="px-5 py-4 bg-charcoal-light text-white/50 rounded-2xl border border-white/10 font-black uppercase text-xs tracking-widest hover:text-white"
+                      className="px-4 py-3 bg-charcoal-light text-white/50 rounded-xl border border-white/10 font-black uppercase text-xs tracking-widest hover:text-white"
                     >
                       Cancel
                     </button>
                   </div>
-                  
+
                   <div className="grid grid-cols-4 gap-2">
                     {[
                       { label: 'Min', val: gameState.current_bet + gameState.big_blind },
@@ -117,70 +117,70 @@ export const ActionTracker: React.FC<ActionTrackerProps> = ({
                       { label: 'Pot', val: Math.round(gameState.pot + gameState.current_bet) },
                       { label: 'Max', val: activePlayer.stack + activePlayer.current_bet }
                     ].map(btn => (
-                      <button 
+                      <button
                         key={btn.label}
-                        onClick={() => setRaiseAmount(btn.val.toString())} 
-                        className="py-2 bg-white/5 hover:bg-gold/10 text-gold/60 hover:text-gold border border-white/5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
+                        onClick={() => setRaiseAmount(btn.val.toString())}
+                        className="py-1.5 bg-white/5 hover:bg-gold/10 text-gold/60 hover:text-gold border border-white/5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all"
                       >
                         {btn.label}
                       </button>
                     ))}
                   </div>
 
-                  <button 
+                  <button
                     onClick={() => {
                       if (raiseAmount && Number(raiseAmount) > 0) onAction('raise', Number(raiseAmount));
                       setRaisingPlayerIdx(null);
                     }}
-                    className="w-full py-4 bg-gradient-to-r from-gold-dark via-gold to-gold-light text-charcoal-dark rounded-2xl font-black text-lg uppercase shadow-gold-strong transition-all hover:scale-[1.02] active:scale-95"
+                    className="w-full py-3 bg-gradient-to-r from-gold-dark via-gold to-gold-light text-charcoal-dark rounded-xl font-black text-sm uppercase shadow-gold-strong transition-all hover:scale-[1.02] active:scale-95"
                   >
                     Confirm Raise
                   </button>
                 </div>
               ) : (
                 <>
-                  <motion.button 
+                  <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => onAction('fold')} 
-                    className="p-4 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-3xl border border-red-500/20 transition-all active:scale-95 group"
+                    onClick={() => onAction('fold')}
+                    className="p-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-2xl border border-red-500/20 transition-all active:scale-95 group"
                   >
-                    <XCircle size={32} className="group-hover:scale-110 transition-transform" />
+                    <XCircle size={24} className="group-hover:scale-110 transition-transform" />
                   </motion.button>
-                  
-                  <motion.button 
+
+                  <motion.button
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98, y: 0 }}
-                    onClick={() => onAction(gameState.current_bet > activePlayer.current_bet ? 'call' : 'check')} 
-                    className="flex-1 py-4 bg-gold text-charcoal-dark rounded-2xl font-black text-lg uppercase tracking-widest shadow-gold transition-all active:scale-95"
+                    onClick={() => onAction(gameState.current_bet > activePlayer.current_bet ? 'call' : 'check')}
+                    className="flex-1 py-3 bg-gold text-charcoal-dark rounded-xl font-black text-sm uppercase tracking-widest shadow-gold transition-all active:scale-95"
                   >
                     {gameState.current_bet > activePlayer.current_bet ? 'Call' : 'Check'}
                   </motion.button>
-                  
-                  <motion.button 
+
+                  <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       setRaiseAmount((gameState.current_bet + gameState.big_blind).toString());
                       setRaisingPlayerIdx(gameState.current_player_index);
-                    }} 
-                    className="px-8 py-4 bg-charcoal-light hover:bg-gold/10 text-gold hover:text-white rounded-2xl border border-gold/20 font-black text-base uppercase tracking-widest transition-all active:scale-95"
+                    }}
+                    className="px-6 py-3 bg-charcoal-light hover:bg-gold/10 text-gold hover:text-white rounded-xl border border-gold/20 font-black text-sm uppercase tracking-widest transition-all active:scale-95"
                   >
                     Raise
                   </motion.button>
 
-                  <motion.button 
+                  <motion.button
                     whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
                     whileTap={{ scale: 0.9 }}
-                    animate={{ 
-                        boxShadow: ["0 0 0px rgba(212,175,55,0)", "0 0 20px rgba(212,175,55,0.4)", "0 0 0px rgba(212,175,55,0)"] 
+                    animate={{
+                        boxShadow: ["0 0 0px rgba(212,175,55,0)", "0 0 15px rgba(212,175,55,0.4)", "0 0 0px rgba(212,175,55,0)"]
                     }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    onClick={() => onAction('all-in')} 
-                    className="p-4 bg-amber-warm/10 hover:bg-amber-warm text-amber-warm hover:text-charcoal-dark rounded-3xl border border-amber-warm/30 transition-all active:scale-95 group shadow-gold-subtle"
+                    onClick={() => onAction('all-in')}
+                    className="p-3 bg-amber-warm/10 hover:bg-amber-warm text-amber-warm hover:text-charcoal-dark rounded-2xl border border-amber-warm/30 transition-all active:scale-95 group shadow-gold-subtle"
                     title="All-In"
                   >
-                    <Coins size={32} className="group-hover:rotate-12 transition-transform" />
+                    <Coins size={24} className="group-hover:rotate-12 transition-transform" />
                   </motion.button>
                 </>
               )}
@@ -191,11 +191,11 @@ export const ActionTracker: React.FC<ActionTrackerProps> = ({
 
       {/* Refill Overlay */}
       {refillingPlayerIdx !== null && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-black/60">
-          <div className="max-w-sm w-full glass-dark border border-gold/30 p-6 rounded-[40px] shadow-2xl animate-scale-in">
-             <div className="text-center space-y-4 mb-8">
-               <div className="w-14 h-14 bg-gold/10 rounded-2xl flex items-center justify-center text-gold mx-auto border border-gold/20">
-                 <Wallet size={32} />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/60">
+          <div className="max-w-sm w-full glass-dark border border-gold/30 p-5 rounded-3xl shadow-2xl animate-scale-in">
+             <div className="text-center space-y-3 mb-6">
+               <div className="w-12 h-12 bg-gold/10 rounded-xl flex items-center justify-center text-gold mx-auto border border-gold/20">
+                 <Wallet size={24} />
                </div>
                <h3 className="text-xl font-black text-white uppercase tracking-tight">Refill Stack</h3>
                <p className="text-gold/60 text-xs uppercase font-bold tracking-widest">Adjusting: {gameState.players[refillingPlayerIdx].name}</p>

@@ -196,52 +196,52 @@ export const VirtualTable: React.FC<any> = ({
   const numPlayers = gameState.players.length;
 
   return (
-    <div className="w-full aspect-square md:aspect-[16/9] lg:aspect-[21/9] relative mb-12 overflow-visible select-none rounded-[40px]">
+    <div className="w-full aspect-square md:aspect-[4/3] lg:aspect-[16/9] relative mb-8 overflow-visible select-none rounded-[40px]">
 
       {/* Background Atmosphere */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.05)_0%,transparent_70%)] pointer-events-none" />
 
       {/* Top Left Controls */}
-      <div className="absolute top-3 left-3 flex gap-2 z-40">
+      <div className="absolute top-2 left-2 flex gap-1.5 z-40">
         {hasUndo && (
-          <button onClick={onUndo} className="px-3 py-1.5 bg-charcoal-dark/80 backdrop-blur-md border border-white/10 hover:border-gold/30 text-white/60 hover:text-gold rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all">
+          <button onClick={onUndo} className="px-2.5 py-1 bg-charcoal-dark/80 backdrop-blur-md border border-white/10 hover:border-gold/30 text-white/60 hover:text-gold rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all">
             Undo
           </button>
         )}
       </div>
 
       {/* Top Right Controls */}
-      <div className="absolute top-3 right-3 flex gap-2 z-40">
-        <button onClick={() => onRotateDealer?.('ccw')} className="p-1.5 bg-charcoal-dark/80 backdrop-blur-md border border-white/10 hover:border-gold/30 text-white/60 hover:text-gold rounded-lg transition-all">
-          <Target size={14} className="-scale-x-100" />
+      <div className="absolute top-2 right-2 flex gap-1.5 z-40">
+        <button onClick={() => onRotateDealer?.('ccw')} className="p-1 bg-charcoal-dark/80 backdrop-blur-md border border-white/10 hover:border-gold/30 text-white/60 hover:text-gold rounded-lg transition-all">
+          <Target size={12} className="-scale-x-100" />
         </button>
-        <button onClick={() => onRotateDealer?.('cw')} className="p-1.5 bg-charcoal-dark/80 backdrop-blur-md border border-white/10 hover:border-gold/30 text-white/60 hover:text-gold rounded-lg transition-all">
-          <Target size={14} />
+        <button onClick={() => onRotateDealer?.('cw')} className="p-1 bg-charcoal-dark/80 backdrop-blur-md border border-white/10 hover:border-gold/30 text-white/60 hover:text-gold rounded-lg transition-all">
+          <Target size={12} />
         </button>
       </div>
 
       {/* Center Arena (The Felt) */}
-      <div className="absolute inset-8 md:inset-16 lg:inset-x-28 lg:inset-y-20 bg-gradient-to-b from-charcoal-dark/60 to-charcoal-dark border border-white/5 rounded-full shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] flex items-center justify-center">
+      <div className="absolute inset-6 md:inset-12 lg:inset-20 bg-gradient-to-b from-charcoal-dark/60 to-charcoal-dark border border-white/5 rounded-full shadow-[inset_0_0_80px_rgba(0,0,0,0.8)] flex items-center justify-center">
 
         {/* Inner glowing ring */}
         <div className="absolute inset-4 rounded-full border border-gold/5 shadow-[0_0_40px_rgba(212,175,55,0.05)] pointer-events-none" />
 
-        <div className="flex flex-col items-center justify-center gap-6 relative z-10 w-full">
+        <div className="flex flex-col items-center justify-center gap-4 relative z-10 w-full">
 
           {/* Pot Display */}
           <div className="text-center relative">
-            <div className="absolute -inset-8 bg-gold/5 blur-3xl rounded-full pointer-events-none" />
-            <span className="text-[10px] font-bold text-gold/50 uppercase tracking-[0.3em] mb-1 block">Total Pot</span>
-            <div className="text-4xl md:text-5xl font-black text-white font-mono tracking-tighter drop-shadow-gold">
+            <div className="absolute -inset-6 bg-gold/5 blur-2xl rounded-full pointer-events-none" />
+            <span className="text-[9px] font-bold text-gold/50 uppercase tracking-[0.25em] mb-0.5 block">Total Pot</span>
+            <div className="text-3xl md:text-4xl font-black text-white font-mono tracking-tighter drop-shadow-gold">
               ${gameState.pot.toLocaleString()}
             </div>
 
             {/* Side Pots */}
             <AnimatePresence>
               {gameState.pots.length > 1 && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2 justify-center mt-2">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-1.5 justify-center mt-1.5">
                   {gameState.pots.map((p: any, i: number) => (
-                    <span key={i} className="text-xs bg-black/40 border border-white/10 px-2 py-0.5 rounded text-gold/70 font-mono">
+                    <span key={i} className="text-[10px] bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-gold/70 font-mono">
                       {i === 0 ? 'Main' : `Side ${i}`}: ${p.amount.toLocaleString()}
                     </span>
                   ))}
@@ -252,7 +252,7 @@ export const VirtualTable: React.FC<any> = ({
 
           {/* Community Cards Pod */}
           <div className="relative group">
-            <div className="flex gap-2 bg-charcoal-dark/80 p-4 rounded-2xl border border-white/10 backdrop-blur-xl min-w-[280px] min-h-[120px] justify-center items-center shadow-2xl">
+            <div className="flex gap-1.5 bg-charcoal-dark/80 p-3 rounded-xl border border-white/10 backdrop-blur-xl min-w-[240px] min-h-[100px] justify-center items-center shadow-2xl">
               <AnimatePresence mode="popLayout">
                 {gameState.community_cards.length > 0 ? (
                   gameState.community_cards.map((c: any, i: number) => (
@@ -274,13 +274,13 @@ export const VirtualTable: React.FC<any> = ({
             {/* Edit Cards Button */}
             <button
               onClick={onOpenCardInput}
-              className="absolute -right-3 -top-3 w-10 h-10 bg-charcoal-light hover:bg-gold text-white/50 hover:text-charcoal-dark rounded-full flex items-center justify-center border border-white/10 hover:border-gold shadow-xl transition-all z-30"
+              className="absolute -right-2 -top-2 w-8 h-8 bg-charcoal-light hover:bg-gold text-white/50 hover:text-charcoal-dark rounded-full flex items-center justify-center border border-white/10 hover:border-gold shadow-xl transition-all z-30"
             >
-              <Eye size={18} />
+              <Eye size={14} />
             </button>
 
             {/* Street Indicator */}
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gold text-charcoal-dark px-3 py-1 rounded-full font-black uppercase text-[10px] tracking-widest shadow-gold">
+            <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-gold text-charcoal-dark px-2.5 py-0.5 rounded-full font-black uppercase text-[9px] tracking-widest shadow-gold">
               {gameState.round}
             </div>
           </div>

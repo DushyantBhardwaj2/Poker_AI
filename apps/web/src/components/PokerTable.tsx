@@ -601,33 +601,39 @@ export default function PokerTable() {
           )}
 
           {gameView === 'tracker' && store.players.length > 0 && (
-            <div className="w-full flex flex-col lg:flex-row gap-8">
-              <ActionTracker 
-                gameState={store as unknown as GameState} 
-                onAction={handleAction}
-                onRefillStack={store.updatePlayerStack}
-                onOpenCardInput={() => {
-                  setPickingFor('community');
-                  setSelectedCards(store.community_cards);
-                  setGameView('cards');
-                }}
-                onUpdatePlayerStatus={store.toggleSitOut}
-                onRemovePlayer={store.removePlayer}
-                onUpdateStack={store.updatePlayerStack}
-                onReorderPlayers={store.reorderPlayers}
-                onRotateDealer={store.rotateDealer}
-                onUndo={store.undoAction}
-                hasUndo={store.undoStack.length > 0}
-              />
-              <AIDashboard
-                fullAnalysis={fullAnalysis} loading={aiLoading}
-                onRunAnalysis={askAi}
-                showdownResult={showdownResult} playerStats={playerStats}
-                onNewHand={initGame} theoryMode={theoryMode}
-                userName={playerNames[0]}
-                isPlayerTurn={store.current_player_index === 0}
-                hasCards={store.players[0]?.hole_cards.length === 2}
-              />
+            <div className="w-full flex flex-col xl:flex-row gap-4">
+              {/* Left Sidebar - AI Advisor */}
+              <div className="xl:w-72 flex-shrink-0 order-2 xl:order-1">
+                <AIDashboard
+                  fullAnalysis={fullAnalysis} loading={aiLoading}
+                  onRunAnalysis={askAi}
+                  showdownResult={showdownResult} playerStats={playerStats}
+                  onNewHand={initGame} theoryMode={theoryMode}
+                  userName={playerNames[0]}
+                  isPlayerTurn={store.current_player_index === 0}
+                  hasCards={store.players[0]?.hole_cards.length === 2}
+                />
+              </div>
+              {/* Center - Table + Action Bar */}
+              <div className="flex-1 order-1 xl:order-2">
+                <ActionTracker
+                  gameState={store as unknown as GameState}
+                  onAction={handleAction}
+                  onRefillStack={store.updatePlayerStack}
+                  onOpenCardInput={() => {
+                    setPickingFor('community');
+                    setSelectedCards(store.community_cards);
+                    setGameView('cards');
+                  }}
+                  onUpdatePlayerStatus={store.toggleSitOut}
+                  onRemovePlayer={store.removePlayer}
+                  onUpdateStack={store.updatePlayerStack}
+                  onReorderPlayers={store.reorderPlayers}
+                  onRotateDealer={store.rotateDealer}
+                  onUndo={store.undoAction}
+                  hasUndo={store.undoStack.length > 0}
+                />
+              </div>
             </div>
           )}
         </>
