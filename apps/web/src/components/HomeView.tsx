@@ -46,10 +46,10 @@ export const HomeView: React.FC = () => {
 
   return (
     <AuthProvider>
-      <div className="max-w-7xl w-full space-y-16 py-16">
+      <div className="max-w-5xl mx-auto w-full space-y-14 py-12">
         {/* Hero Section with Dramatic Staggered Reveal */}
         <motion.section
-          className="text-center space-y-6"
+          className="text-center space-y-5"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -64,46 +64,46 @@ export const HomeView: React.FC = () => {
 
           <motion.h1
             variants={itemVariants}
-            className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none"
+            className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-tight"
           >
             Master the <span className="text-gold">Theory</span>,<br />Dominate the <span className="text-cream">Game.</span>
           </motion.h1>
 
           <motion.p
             variants={itemVariants}
-            className="max-w-2xl mx-auto text-cream/50 text-base leading-relaxed"
+            className="max-w-xl mx-auto text-cream/60 text-sm leading-relaxed"
           >
             PokerSense AI combines real-time Monte Carlo simulations with David Sklansky's "The Theory of Poker" to provide mathematically optimal move recommendations.
           </motion.p>
 
           <motion.div
             variants={itemVariants}
-            className="flex flex-col sm:flex-row justify-center gap-6 pt-8"
+            className="flex flex-col sm:flex-row justify-center gap-4 pt-6"
           >
             <a
               href="/play"
-              className="group relative bg-gold hover:bg-gold-light text-charcoal-dark px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-gold-strong flex items-center justify-center gap-4 hover:scale-105 active:scale-95"
+              className="group relative bg-gold hover:bg-gold-light text-charcoal-dark px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-gold-strong flex items-center justify-center gap-3 hover:scale-105 active:scale-95"
             >
               Start Real-Time Analysis
-              <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </a>
 
             {mounted && !user && (
                 <a
                   href="/auth/sign-up"
-                  className="group bg-white/5 hover:bg-white/10 text-cream px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-white/10 flex items-center justify-center gap-4 hover:scale-105 active:scale-95"
+                  className="group bg-white/5 hover:bg-white/10 text-cream px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border border-white/10 flex items-center justify-center gap-3 hover:scale-105 active:scale-95"
                 >
                   Create Account
-                  <UserPlus size={18} className="group-hover:scale-110 transition-transform text-gold" />
+                  <UserPlus size={16} className="group-hover:scale-110 transition-transform text-gold" />
                 </a>
             )}
 
             <a
               href="/theory"
-              className="group bg-white/5 hover:bg-white/10 text-cream px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-white/10 flex items-center justify-center gap-4 hover:scale-105 active:scale-95"
+              className="group bg-white/5 hover:bg-white/10 text-cream px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border border-white/10 flex items-center justify-center gap-3 hover:scale-105 active:scale-95"
             >
               Study the Theory
-              <BookOpen size={18} />
+              <BookOpen size={16} />
             </a>
           </motion.div>
         </motion.section>
@@ -111,7 +111,7 @@ export const HomeView: React.FC = () => {
 
         {/* Principles Section with Staggered Cards */}
         <motion.section
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-16"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-10"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
@@ -137,13 +137,13 @@ export const HomeView: React.FC = () => {
             <motion.div
               key={i}
               variants={itemVariants}
-              className="bg-charcoal p-8 rounded-3xl border border-white/5 space-y-6 hover:border-gold/30 transition-all group hover:-translate-y-1"
+              className="bg-charcoal-light border border-white/5 p-6 rounded-2xl space-y-4 hover:border-gold/30 transition-all group hover:-translate-y-1"
             >
-              <div className="w-10 h-10 bg-gold/10 rounded-2xl flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-charcoal transition-all shadow-gold">
-                <item.icon size={24} />
+              <div className="w-10 h-10 bg-gold/10 rounded-xl flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-charcoal transition-all shadow-gold">
+                <item.icon size={22} />
               </div>
-              <h3 className="text-xl font-black text-white uppercase tracking-wider">{item.title}</h3>
-              <p className="text-cream/40 leading-relaxed text-xs">{item.desc}</p>
+              <h3 className="text-lg font-black text-white uppercase tracking-wider">{item.title}</h3>
+              <p className="text-cream/50 leading-relaxed text-xs">{item.desc}</p>
             </motion.div>
           ))}
         </motion.section>
