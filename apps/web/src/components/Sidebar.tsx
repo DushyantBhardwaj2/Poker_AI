@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Home, Play, BookOpen, GraduationCap, Settings, Menu, X, ChevronLeft, ChevronRight, LogIn, Target, LogOut, User, TrendingUp } from 'lucide-react';
+import { Home, Play, BookOpen, GraduationCap, Settings, Menu, X, ChevronLeft, ChevronRight, LogIn, Target, LogOut, User, TrendingUp, HelpCircle } from 'lucide-react';
 import { authClient, isAuthEnabled } from "../lib/auth";
 
 import { isAuthPath } from '../lib/auth-utils';
@@ -93,6 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'home', label: 'Home', icon: Home, href: '/' },
     { id: 'play', label: 'Play Game', icon: Play, href: '/play' },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp, href: '/analytics' },
+    { id: 'howtouse', label: 'How to Use', icon: HelpCircle, href: '/how-to-use' },
     { id: 'learn', label: 'Learn Poker', icon: GraduationCap, href: '/theory' },
     { id: 'guide', label: 'Guide & Rules', icon: BookOpen, href: '/guide' },
     { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
