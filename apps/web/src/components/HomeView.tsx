@@ -1,33 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, BookOpen, GraduationCap, ChevronRight, Award, Target, Brain, UserPlus, TrendingUp, Activity, Zap, Crosshair } from 'lucide-react';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { Play, BookOpen, GraduationCap, ChevronRight, Award, Target, Brain, UserPlus, TrendingUp, Activity, Zap, Crosshair, Users } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { authClient } from '../lib/auth';
 import { AuthProvider } from './AuthProvider';
 
-// Optimized animation settings for performance
-const springTransition = { type: "spring", stiffness: 120, damping: 20 };
+// Animation settings
 const easeOutTransition = { duration: 0.6, ease: [0.22, 1, 0.36, 1] };
-
-// Staggered animation variants - GPU accelerated
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.15 }
-  }
+  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.15 } }
 };
-
 const itemVariants = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { ...easeOutTransition } }
 };
 
-const fadeInVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.8, ease: "easeOut" } }
-};
-
-// Floating particle component - GPU accelerated
+// Floating particle component
 const FloatingParticle = ({ delay, size, left, top }: { delay: number; size: number; left: string; top: string }) => (
   <motion.div
     className="absolute rounded-full bg-gold/5 pointer-events-none"
@@ -46,7 +34,7 @@ const FloatingParticle = ({ delay, size, left, top }: { delay: number; size: num
   />
 );
 
-// Probability ring visualization - lightweight SVG animation
+// Probability ring visualization
 const ProbabilityRing = () => (
   <motion.svg
     className="absolute -top-8 -right-8 w-24 h-24 opacity-30"
@@ -67,7 +55,7 @@ const ProbabilityRing = () => (
   </motion.svg>
 );
 
-// Animated stat line - lightweight HUD element
+// Animated stat line
 const AnimatedStatLine = ({ label, value, delay }: { label: string; value: string; delay: number }) => (
   <motion.div
     className="flex justify-between items-center text-xs"
@@ -87,15 +75,11 @@ const AnimatedStatLine = ({ label, value, delay }: { label: string; value: strin
   </motion.div>
 );
 
-// Enhanced Feature Card with animations
+// Feature Card - Updated for product-focused messaging
 const FeatureCard = ({ icon: Icon, title, desc, delay, index }: { icon: any; title: string; desc: string; delay: number; index: number }) => {
   const cardVariants = {
     hidden: { opacity: 0, y: 40 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { ...easeOutTransition, delay: delay * 0.1 }
-    }
+    visible: { opacity: 1, y: 0, transition: { ...easeOutTransition, delay: delay * 0.1 } }
   };
 
   return (
@@ -120,7 +104,7 @@ const FeatureCard = ({ icon: Icon, title, desc, delay, index }: { icon: any; tit
 
       <div className="relative z-10 space-y-3">
         <motion.div
-          className="w-10 h-10 bg-gold/10 rounded-xl flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-charcoal transition-all duration-500 shadow-gold"
+          className="w-10 h-10 bg-gold/10 rounded-xl flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-charcoal transition-all duration-500"
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 2, delay: delay * 0.2, repeat: Infinity }}
         >
@@ -130,24 +114,24 @@ const FeatureCard = ({ icon: Icon, title, desc, delay, index }: { icon: any; tit
         <h3 className="text-base font-black text-white uppercase tracking-wider">{title}</h3>
         <p className="text-xs text-cream/50 leading-relaxed">{desc}</p>
 
-        {/* Mini HUD stats - subtle */}
+        {/* Stats for each card */}
         <div className="pt-2 border-t border-white/5 space-y-1">
           {index === 0 && (
             <>
-              <AnimatedStatLine label="EV Accuracy" value="94.2%" delay={0.1} />
-              <AnimatedStatLine label="Simulations" value="10K+" delay={0.15} />
+              <AnimatedStatLine label="Win Rate" value="+12%" delay={0.1} />
+              <AnimatedStatLine label="Analyzed" value="2.4K" delay={0.15} />
             </>
           )}
           {index === 1 && (
             <>
-              <AnimatedStatLine label="Bluff Precision" value="87%" delay={0.1} />
-              <AnimatedStatLine label="Patterns" value="2.4K" delay={0.15} />
+              <AnimatedStatLine label="Bluff Read" value="87%" delay={0.1} />
+              <AnimatedStatLine label="Patterns" value="156+" delay={0.15} />
             </>
           )}
           {index === 2 && (
             <>
-              <AnimatedStatLine label="Theory Tags" value="156" delay={0.1} />
-              <AnimatedStatLine label="References" value="20 Ch." delay={0.15} />
+              <AnimatedStatLine label="EV Accuracy" value="94%" delay={0.1} />
+              <AnimatedStatLine label="Decisions" value="10K+" delay={0.15} />
             </>
           )}
         </div>
@@ -156,7 +140,7 @@ const FeatureCard = ({ icon: Icon, title, desc, delay, index }: { icon: any; tit
   );
 };
 
-// CTA Button with magnetic effect
+// CTA Button
 const CTAButton = ({ href, primary, children, icon: Icon }: { href: string; primary?: boolean; children: React.ReactNode; icon?: any }) => {
   return (
     <motion.a
@@ -172,7 +156,6 @@ const CTAButton = ({ href, primary, children, icon: Icon }: { href: string; prim
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
-      {/* Shimmer effect */}
       <motion.div
         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
         initial={{ x: "-100%" }}
@@ -187,7 +170,7 @@ const CTAButton = ({ href, primary, children, icon: Icon }: { href: string; prim
   );
 };
 
-// AI Analysis visualization - pulsing ring
+// AI Analysis visualization
 const AIIndicator = () => (
   <div className="relative w-8 h-8">
     <motion.div
@@ -204,21 +187,47 @@ const AIIndicator = () => (
   </div>
 );
 
+// How to Play Card
+const HowToPlayCard = ({ num, title, desc, icon: Icon, delay }: { num: number; title: string; desc: string; icon: any; delay: number }) => (
+  <motion.div
+    className="flex items-start gap-3"
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{ ...easeOutTransition, delay }}
+  >
+    <div className="w-8 h-8 bg-gold/10 rounded-lg flex items-center justify-center text-gold text-sm font-bold flex-shrink-0">
+      {num}
+    </div>
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <Icon size={14} className="text-gold/70" />
+        <span className="text-sm font-semibold text-white">{title}</span>
+      </div>
+      <p className="text-xs text-cream/40">{desc}</p>
+    </div>
+  </motion.div>
+);
+
+// Game Feature Badge
+const GameFeature = ({ icon: Icon, label, delay }: { icon: any; label: string; delay: number }) => (
+  <motion.div
+    className="flex items-center gap-2 bg-white/5 px-3 py-2 rounded-lg"
+    initial={{ opacity: 0, scale: 0.9 }}
+    whileInView={{ opacity: 1, scale: 1 }}
+    viewport={{ once: true }}
+    transition={{ ...easeOutTransition, delay }}
+  >
+    <Icon size={16} className="text-gold/70" />
+    <span className="text-xs text-cream/60">{label}</span>
+  </motion.div>
+);
+
 export const HomeView: React.FC = () => {
   const [mounted, setMounted] = React.useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // Mouse parallax - lazy tracked
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (typeof window === 'undefined') return;
-    const x = (e.clientX / window.innerWidth - 0.5) * 10;
-    const y = (e.clientY / window.innerHeight - 0.5) * 10;
-    setMousePos({ x, y });
-  };
-
-  useEffect(() => {
+  React.useEffect(() => {
     setMounted(true);
 
     const fetchSession = async () => {
@@ -233,7 +242,7 @@ export const HomeView: React.FC = () => {
     fetchSession();
   }, []);
 
-  // Memoize particles to prevent rerenders
+  // Memoize particles
   const particles = useMemo(() => (
     Array.from({ length: 8 }).map((_, i) => ({
       id: i,
@@ -246,88 +255,61 @@ export const HomeView: React.FC = () => {
 
   return (
     <AuthProvider>
-      {/* Animated background layers */}
+      {/* Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        {/* Base gradient */}
         <div className="absolute inset-0 bg-charcoal-dark" />
-
-        {/* Radial glow - top center */}
         <motion.div
           className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full"
-          style={{
-            background: "radial-gradient(ellipse at center, rgba(212,175,55,0.08) 0%, transparent 60%)",
-          }}
+          style={{ background: "radial-gradient(ellipse at center, rgba(212,175,55,0.08) 0%, transparent 60%)" }}
           animate={{ opacity: [0.5, 0.8, 0.5] }}
           transition={{ duration: 5, repeat: Infinity }}
         />
-
-        {/* Moving grain - very subtle */}
         <motion.div
           className="absolute inset-0 opacity-[0.015]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          }}
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }}
           animate={{ x: [0, 50, 0] }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
         />
-
-        {/* Floating particles */}
         {particles.map((p) => (
           <FloatingParticle key={p.id} {...p} />
         ))}
       </div>
 
-      <div
-        className="max-w-5xl mx-auto w-full space-y-14 py-12"
-        onMouseMove={handleMouseMove}
-      >
-        {/* Hero Section */}
+      <div className="max-w-5xl mx-auto w-full space-y-14 py-12">
+        {/* HERO SECTION */}
         <motion.section
           className="text-center space-y-5 relative"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
-          {/* Probability ring decoration */}
           <div className="absolute -top-12 -right-12 w-32 h-32 pointer-events-none opacity-20">
             <ProbabilityRing />
           </div>
 
-          {/* AI indicator badge */}
+          {/* AI badge */}
           <motion.div
             variants={itemVariants}
             className="inline-flex items-center gap-3 bg-gold/5 border border-gold/20 px-4 py-2 rounded-full"
           >
             <AIIndicator />
-            <span className="text-[10px] font-black uppercase tracking-widest text-gold">Advanced Decision Support System</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gold">Real-Time Poker Intelligence</span>
           </motion.div>
 
-          {/* Heading with parallax effect */}
+          {/* Main heading - Customer focused */}
           <motion.h1
             variants={itemVariants}
             className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-tight"
-            style={{
-              x: mousePos.x * -2,
-              y: mousePos.y * -1
-            }}
           >
-            Master the <span className="text-gold relative">Theory
-              {/* Shimmer effect */}
-              <motion.span
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                initial={{ x: "-100%" }}
-                animate={{ x: "100%" }}
-                transition={{ duration: 3, repeat: Infinity, delay: 2 }}
-                style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)" }}
-              />
-            </span>,<br />Dominate the <span className="text-cream">Game.</span>
+            Your Winning Edge<br />
+            <span className="text-gold">In Real-Time</span>
           </motion.h1>
 
           <motion.p
             variants={itemVariants}
             className="max-w-xl mx-auto text-cream/60 text-sm leading-relaxed"
           >
-            PokerSense AI combines real-time Monte Carlo simulations with David Sklansky's "The Theory of Poker" to provide mathematically optimal move recommendations.
+            Get instant AI analysis on every hand. Read opponents. Make smarter decisions. Train like a pro from your first game.
           </motion.p>
 
           {/* CTA Buttons */}
@@ -336,42 +318,48 @@ export const HomeView: React.FC = () => {
             className="flex flex-col sm:flex-row justify-center gap-4 pt-6"
           >
             <CTAButton href="/play" primary>
-              Start Real-Time Analysis
-              <ChevronRight size={14} />
+              Start Playing <Play />
             </CTAButton>
 
             {mounted && !user && (
               <CTAButton href="/auth/sign-up">
-                Create Account
-                <UserPlus size={14} />
+                Create Account <UserPlus />
               </CTAButton>
             )}
 
-            <CTAButton href="/theory">
-              Study the Theory
-              <BookOpen size={14} />
+            <CTAButton href="/guide">
+              How It Works <BookOpen />
             </CTAButton>
           </motion.div>
         </motion.section>
 
-        {/* Principles Section */}
+        {/* HOW TO PLAY SECTION */}
         <motion.section
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-10"
-          variants={containerVariants}
+          className="space-y-6"
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
+          viewport={{ once: true }}
         >
-          {[
-            { icon: Target, title: "Expected Value", desc: "Every move is analyzed through the lens of long-term profitability (EV). We don't just guess; we calculate." },
-            { icon: Brain, title: "Behavioral Modeling", desc: "The system detects opponent patterns to predict bluffs and identify fundamental strategic mistakes." },
-            { icon: GraduationCap, title: "Theory-Driven", desc: "Powered by the Fundamental Theorem of Poker. We exploit opponent mistakes to maximize your edge." }
-          ].map((item, i) => (
-            <FeatureCard key={i} {...item} index={i} delay={300 + i * 100} />
-          ))}
+          <div className="text-center">
+            <h2 className="text-lg font-bold text-white uppercase tracking-wider">How To Play</h2>
+            <p className="text-xs text-cream/40 mt-1">Get started in under a minute</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <HowToPlayCard num={1} title="Add Players" desc="Enter player names and starting stacks" icon={UserPlus} delay={0.1} />
+            <HowToPlayCard num={2} title="Start a Hand" desc="Deal hole cards to each player" icon={Play} delay={0.2} />
+            <HowToPlayCard num={3} title="Get AI Insights" desc="Receive real-time EV and strategy advice" icon={Brain} delay={0.3} />
+            <HowToPlayCard num={4} title="Track Tendencies" desc="Build opponent profiles over time" icon={TrendingUp} delay={0.4} />
+          </div>
+
+          <div className="flex justify-center">
+            <CTAButton href="/how-to-use">
+              View Full Guide <ChevronRight />
+            </CTAButton>
+          </div>
         </motion.section>
 
-        {/* Decorative divider */}
+        {/* DIVIDER */}
         <motion.div
           className="flex items-center justify-center gap-2 pt-8"
           initial={{ opacity: 0 }}
@@ -382,7 +370,45 @@ export const HomeView: React.FC = () => {
           <Crosshair size={12} className="text-gold/30" />
           <div className="h-px w-16 bg-gradient-to-l from-transparent to-gold/30" />
         </motion.div>
+
+        {/* PLAY GAME SECTION */}
+        <motion.section
+          className="space-y-6"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
+          <div className="text-center">
+            <h2 className="text-lg font-bold text-white uppercase tracking-wider">Play Smarter</h2>
+            <p className="text-xs text-cream/40 mt-1">Powerful features in a simple interface</p>
+          </div>
+
+          {/* Feature grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <GameFeature icon={Zap} label="Real-Time EV" delay={0.1} />
+            <GameFeature icon={Brain} label="Bluff Detection" delay={0.15} />
+            <GameFeature icon={Target} label="Pot Odds" delay={0.2} />
+            <GameFeature icon={Activity} label="Decision Help" delay={0.25} />
+          </div>
+
+          {/* Stats */}
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 pt-2">
+            <span className="text-xs text-cream/40">94% EV Accuracy</span>
+            <span className="text-xs text-cream/30">|</span>
+            <span className="text-xs text-cream/40">2.4K Hands Tracked</span>
+            <span className="text-xs text-cream/30">|</span>
+            <span className="text-xs text-cream/40">156+ Patterns</span>
+          </div>
+
+          <div className="flex justify-center">
+            <CTAButton href="/play" primary>
+              Begin Session <Play />
+            </CTAButton>
+          </div>
+        </motion.section>
       </div>
     </AuthProvider>
   );
 };
+
+export default HomeView;
