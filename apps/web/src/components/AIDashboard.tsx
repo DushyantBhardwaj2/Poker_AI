@@ -30,7 +30,7 @@ export function AIDashboard({
 }: AIDashboardProps & { userName?: string }) {
 
   return (
-    <div className="flex-1 max-w-sm flex flex-col gap-6">
+    <div className="flex-1 flex flex-col gap-4">
       {showdownResult ? (
         <PostHandAnalysis
           showdownResult={showdownResult}
@@ -41,10 +41,10 @@ export function AIDashboard({
         <>
           {/* Unified AI Tactical HUD - only show when it's player's turn */}
           {isPlayerTurn && (
-            <AdvisorHUD 
-              analysis={fullAnalysis} 
-              loading={loading} 
-              onRefresh={onRunAnalysis} 
+            <AdvisorHUD
+              analysis={fullAnalysis}
+              loading={loading}
+              onRefresh={onRunAnalysis}
               hasCards={hasCards}
             />
           )}
