@@ -6,7 +6,7 @@ from sqlalchemy import func
 from .db_models import (
     User, Opponent, OpponentStats, GameSession,
     SessionOpponent, default_dynamic_features, default_session_features,
-    HandHistory
+    HandHistory, generate_uuid
 )
 
 # Archetype thresholds based on poker theory
@@ -497,6 +497,23 @@ class StatsRepository:
             stats.session_features = default_session_features()
 
         self.db.commit()
+
+    def create_session(self, user_id: uuid.UUID, name: str = "Session") -> GameSession:
+        """Create a new game session"""
+        user_id = self._ensure_uuid(user_id)
+
+        session = GameSession(
+            session_id=generate_uuid(),
+            user_id=user_id,
+            name=name,
+            total_hands=0,
+            total_winnings=0.0,
+            session_features=default_session_features()
+        )
+        self.db.add(session)
+        self.db.commit()
+        self.db.refresh(session)
+        return session
 
     def get_recent_opponents(self, user_id: uuid.UUID, limit: int = 10) -> List[Dict]:
         """Get list of most recently played opponents"""
