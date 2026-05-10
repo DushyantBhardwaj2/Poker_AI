@@ -23,9 +23,18 @@ import {
   MousePointerClick,
   CircleDollarSign,
   FlaskConical,
-  Workflow
+  Workflow,
+  Info,
+  TrendingDown,
+  Minus,
+  Plus,
+  AlertCircle,
+  HelpCircle,
+  ArrowRight,
+  Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Tooltip } from './Tooltip';
 
 const SECTION_TABS = [
   { id: 'quickstart', label: 'Quick Start', icon: Zap },
@@ -309,60 +318,444 @@ const AnalyticsSection = () => (
       <div className="w-10 h-10 bg-gold/10 rounded-xl flex items-center justify-center text-gold">
         <BarChart3 size={20} />
       </div>
-      <h2 className="text-xl font-black text-white uppercase tracking-wider">Understanding Analytics</h2>
+      <h2 className="text-xl font-black text-white uppercase tracking-wider">Understanding Poker Analytics</h2>
     </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <StatCard
+    <p className="text-xs text-cream/50 leading-relaxed mb-4">
+      Poker analytics measure your gameplay patterns. Understanding these metrics helps you identify strengths,
+      spot weaknesses, and make data-driven improvements to your game. Below is a comprehensive guide to each metric.
+    </p>
+
+    {/* Core Stats with Detailed Explanations */}
+    <div className="space-y-3">
+      <DetailedStatCard
         label="Total Profit/Loss"
-        desc="Net earnings from the current session. Green = profitable, red = losing session."
+        abbr="Net $"
+        fullForm="Net Earnings"
+        whatItMeasures="Your total money won or lost in the current session"
+        whyItMatters="The bottom line of your poker success - measures actual profitability"
+        lowValue="Losing money - review your decision-making"
+        highValue="Positive ROI - indicate profitable sessions"
+        goodRange="$0 or higher"
+        professional="Breaking even or profiting"
+        beginnerTip="Don't chase losses. Focus on making +EV decisions, not recovering money."
+        example="Winning $150 means you made $150 profit for the session."
+        mistakes="Chasing losses, tilting after bad beats, forcing action"
+        tipsToImprove="Stick to solid ranges, don't call too light, value bet thin"
       />
-      <StatCard
+      <DetailedStatCard
         label="Win Rate"
-        desc="Percentage of hands won at showdown. Professional players aim for 50%+."
+        abbr="WR"
+        fullForm="Showdown Win Percentage"
+        whatItMeasures="Percentage of hands you win at showdown"
+        whyItMatters="Direct indicator of hand strength - are you winning the big confrontations?"
+        lowValue="Below 40% - may indicate poor hand selection"
+        highValue="50%+ - indicates strong hand selection"
+        goodRange="40-55%"
+        professional="45-55% at 6-max tables"
+        beginnerTip="High win rate with low volume means nothing. Variance is real - play 1000+ hands to know your true rate."
+        example="52% win rate means you win showdown 52 out of every 100 hands."
+        mistakes="Bluffing too much, showdown with weak hands, bad fold equity estimation"
+        tipsToImprove="Play stronger hands, value bet stronger, fold marginal hands"
       />
-      <StatCard
-        label="VPIP (Voluntarily Put $ In)"
-        desc="% of hands you play. TAG: 15-25%, LAG: 30-45%+."
+      <DetailedStatCard
+        label="VPIP"
+        abbr="VPIP"
+        fullForm="Voluntarily Put Money In Pot"
+        whatItMeasures="Percentage of hands you choose to play (call or raise)"
+        whyItMatters="Your hand selectivity - are you playing too many weak hands?"
+        lowValue="Below 15% - too tight, missing value"
+        highValue="Above 35% - playing too loose, burning money"
+        goodRange="18-28%"
+        professional="TAG: 18-25%, LAG: 28-40%"
+        beginnerTip="Most beginners play too many hands. Start tight (18-22%) and loosen up as you improve."
+        example="25% VPIP means you play 1 in 4 hands dealt to you."
+        mistakes="Playing any pair, any suited connector, calling too much preflop"
+        tipsToImprove="Stick to premium hands, tighten up from early position"
       />
-      <StatCard
-        label="PFR (Preflop Raise)"
-        desc="% of hands you raise preflop. Indicates aggression level."
+      <DetailedStatCard
+        label="PFR"
+        abbr="PFR"
+        fullForm="Preflop Raise Percentage"
+        whatItMeasures="Percentage of hands you raise preflop"
+        whyItMatters="Your aggression level - strong players raise, weak players limp"
+        lowValue="Below 8% - too passive, missing value"
+        highValue="Above 25% - over-aggressive, light raising"
+        goodRange="12-22%"
+        professional="14-20% for TAG players"
+        beginnerTip="Raise your good hands. Don't just call - extract value and take control."
+        example="18% PFR means you raise 18% of hands you play preflop."
+        mistakes="Limping with AA/KK, flatting too much, not 3-betting"
+        tipsToImprove="3-bet more, raise your open-raises, isolate limpers"
       />
-      <StatCard
+      <DetailedStatCard
         label="Hands Tracked"
-        desc="Total hands played in the session. More hands = more reliable stats."
+        abbr="Hands"
+        fullForm="Total Hands Played"
+        whatItMeasures="Number of hands recorded in current session"
+        whyItMatters="Sample size determines stat reliability"
+        lowValue="Few hands = unreliable stats"
+        highValue="More hands = reliable data"
+        goodRange="100+ for basic trends, 1000+ for accuracy"
+        professional="Analyzing 5000+ hands for accurate reads"
+        beginnerTip="Your first 100 hands will look different than your next 1000. Trust bigger samples."
+        example="250 hands tracked tells you basic tendencies, 5000+ reveals true patterns."
+        mistakes="Judging performance on 20 hands, changing strategy after small sample"
+        tipsToImprove="Track consistently, review weekly/monthly trends"
       />
-      <StatCard
+      <DetailedStatCard
         label="Strategic Leaks"
-        desc="Detected mistakes in your play. Focus on fixing these to improve."
+        abbr="Leaks"
+        fullForm="Detected Mistakes"
+        whatItMeasures="Automated detection of -EV plays"
+        whyItMatters="These are具体的 mistakes costing you money"
+        lowValue="Few leaks = solid fundamentals"
+        highValue="Many leaks = work to do"
+        goodRange="0-2 active leaks"
+        professional="Minimal leaks in core strategy"
+        beginnerTip="Fix one leak at a time. Don't try to fix everything at once."
+        example="Common leak: calling with weak draws when pot odds are wrong."
+        mistakes="Posting open for value, floating too much, not folding enough"
+        tipsToImprove="Review leaks weekly, focus on highest-EV fix first"
       />
     </div>
 
-    <div className="bg-charcoal-light border border-white/5 rounded-xl p-4">
-      <h3 className="text-xs font-bold text-gold uppercase tracking-wider mb-3">Reading Your Stats</h3>
-      <div className="space-y-3 text-xs">
-        <div className="flex justify-between items-center">
-          <span className="text-cream/50">Tight & Aggressive (TAG)</span>
-          <span className="text-gold">VPIP 18-25%, PFR 12-20%</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-cream/50">Loose & Aggressive (LAG)</span>
-          <span className="text-gold">VPIP 30-45%, PFR 20-30%</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-cream/50">Loose Passive (Fish)</span>
-          <span className="text-gold">VPIP 40%+, PFR &lt; 10%</span>
-        </div>
+    {/* Archetype Reference */}
+    <ArchetypeSection />
+
+    {/* Stat Combinations */}
+    <StatCombinationsSection />
+
+    {/* How Pros Use Analytics */}
+    <HowProsSection />
+
+    {/* Pro Tips */}
+    <div className="bg-gold/5 border border-gold/20 rounded-xl p-4 mt-6">
+      <div className="flex items-center gap-2 mb-3">
+        <Trophy size={14} className="text-gold" />
+        <h3 className="text-xs font-bold text-gold uppercase tracking-wider">Quick Reference: Good Ranges</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 text-xs">
+        <div><span className="text-cream/40">Solid VPIP:</span> <span className="text-gold">18-25%</span></div>
+        <div><span className="text-cream/40">Solid PFR:</span> <span className="text-gold">12-20%</span></div>
+        <div><span className="text-cream/40">Good Win Rate:</span> <span className="text-gold">45-55%</span></div>
+        <div><span className="text-cream/40">PFR/VPIP Ratio:</span> <span className="text-gold">0.6-0.8</span></div>
       </div>
     </div>
   </motion.div>
 );
 
-const StatCard = ({ label, desc }: { label: string, desc: string }) => (
-  <div className="bg-charcoal-light border border-white/5 p-3 rounded-xl">
-    <h4 className="text-xs font-bold text-white uppercase mb-1">{label}</h4>
-    <p className="text-xs text-cream/50">{desc}</p>
+// --- Detailed Stat Card Component ---
+const DetailedStatCard = ({
+  label, abbr, fullForm, whatItMeasures, whyItMatters, lowValue, highValue,
+  goodRange, professional, beginnerTip, example, mistakes, tipsToImprove
+}: {
+  label: string; abbr: string; fullForm: string; whatItMeasures: string; whyItMatters: string;
+  lowValue: string; highValue: string; goodRange: string; professional: string;
+  beginnerTip: string; example: string; mistakes: string; tipsToImprove: string;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-charcoal-light border border-white/5 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-3 text-left transition-colors hover:bg-white/[0.02]"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-black text-gold uppercase">{abbr}</span>
+          <div>
+            <h4 className="text-xs font-bold text-white uppercase">{label}</h4>
+            <p className="text-[10px] text-cream/40">{fullForm}</p>
+          </div>
+        </div>
+        <ChevronDown size={14} className={`text-cream/30 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3 space-y-3 text-[10px]">
+              <div className="pt-2 border-t border-white/5">
+                <span className="text-cream/40 font-bold">MEANS: </span>
+                <span className="text-cream/60">{whatItMeasures}</span>
+              </div>
+
+              <div>
+                <span className="text-cream/40 font-bold">WHY IT MATTERS: </span>
+                <span className="text-cream/60">{whyItMatters}</span>
+              </div>
+
+              <div className="flex gap-4 text-[9px]">
+                <div className="flex-1 bg-red-500/5 border border-red-500/10 p-2 rounded-lg">
+                  <span className="text-red-400 font-bold">LOW: </span>
+                  <span className="text-cream/50">{lowValue}</span>
+                </div>
+                <div className="flex-1 bg-orange-500/5 border border-orange-500/10 p-2 rounded-lg">
+                  <span className="text-orange-400 font-bold">HIGH: </span>
+                  <span className="text-cream/50">{highValue}</span>
+                </div>
+              </div>
+
+              <div className="bg-green-500/5 border border-green-500/10 p-2 rounded-lg">
+                <span className="text-green-400 font-bold">GOOD RANGE: </span>
+                <span className="text-cream/70">{goodRange}</span>
+              </div>
+
+              <div>
+                <span className="text-gold/60 font-bold">PRO TIP: </span>
+                <span className="text-cream/50">{professional}</span>
+              </div>
+
+              <div>
+                <span className="text-blue-400 font-bold">EXAMPLE: </span>
+                <span className="text-cream/50">{example}</span>
+              </div>
+
+              <div>
+                <span className="text-red-400 font-bold">MISTAKES: </span>
+                <span className="text-cream/50">{mistakes}</span>
+              </div>
+
+              <div>
+                <span className="text-gold font-bold">HOW TO IMPROVE: </span>
+                <span className="text-cream/50">{tipsToImprove}</span>
+              </div>
+
+              <div className="bg-blue-500/5 border border-blue-500/10 p-2 rounded-lg">
+                <span className="text-blue-400 font-bold">BEGINNER TIP: </span>
+                <span className="text-cream/60">{beginnerTip}</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// --- Archetype Section ---
+const ArchetypeSection = () => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-charcoal-light border border-white/5 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-3 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Users size={14} className="text-gold" />
+          <span className="text-xs font-bold text-white uppercase">Player Archetypes Reference</span>
+        </div>
+        <ChevronDown size={14} className={`text-cream/30 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3 space-y-2">
+              <ArchetypeRow
+                name="TAG"
+                full="Tight Aggressive"
+                desc="Plays few hands, but raises strong ones. Most profitable archetype."
+                vpip="18-25%"
+                pfr="12-20%"
+              />
+              <ArchetypeRow
+                name="LAG"
+                full="Loose Aggressive"
+                desc="Plays many hands, raises often. High variance but can be profitable."
+                vpip="30-45%"
+                pfr="20-30%"
+              />
+              <ArchetypeRow
+                name="Nit"
+                full="Nit"
+                desc="Very tight, only premium hands. Hard to beat but limited upside."
+                vpip="12-18%"
+                pfr="8-14%"
+              />
+              <ArchetypeRow
+                name="Calling Station"
+                full="Loose Passive"
+                desc="Calls too much, rarely raises. Easy to extract value from."
+                vpip="35%+"
+                pfr="<8%"
+              />
+              <ArchetypeRow
+                name="Maniac"
+                full="Loose Aggressive"
+                desc="Raising madness. High variance, exploits scared players."
+                vpip="45%+/"
+                pfr="30%+/"
+              />
+              <ArchetypeRow
+                name="Fish"
+                full="Weak Loose Passive"
+                desc="Plays too many, plays poorly. Most profitable to play against."
+                vpip="40%+"
+                pfr="<10%"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const ArchetypeRow = ({ name, full, desc, vpip, pfr }: { name: string; full: string; desc: string; vpip: string; pfr: string }) => (
+  <div className="flex items-center gap-2 text-[10px] py-1.5 border-b border-white/5 last:border-0">
+    <span className="w-16 font-bold text-white">{name}</span>
+    <span className="w-20 text-cream/40">({full})</span>
+    <span className="flex-1 text-cream/50">{desc}</span>
+    <span className="text-gold/60 text-[9px]">{vpip}/{pfr}</span>
+  </div>
+);
+
+// --- Stat Combinations Section ---
+const StatCombinationsSection = () => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-charcoal-light border border-white/5 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-3 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <TrendingDown size={14} className="text-gold" />
+          <span className="text-xs font-bold text-white uppercase">Stat Combinations Explained</span>
+        </div>
+        <ChevronDown size={14} className={`text-cream/30 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3 space-y-2 text-[10px]">
+              <StatCombo
+                combo="High VPIP + Low PFR"
+                meaning="Weak-Passive / Calling Station"
+                desc="Calls too much, rarely raises. Exploit by value betting."
+              />
+              <StatCombo
+                combo="Low VPIP + High PFR"
+                meaning="Nit / Strong Tight"
+                desc="Only plays premium, raises them. Hard to play against."
+              />
+              <StatCombo
+                combo="High WTSD"
+                meaning="Goes to Showdown Too Often"
+                desc="Calls too far, shows down weak hands. Value bet thinner."
+              />
+              <StatCombo
+                combo="Low Fold to C-Bet"
+                meaning="Folds Too Much to Continuation"
+                desc="Bleeds chips to continuation bets. Bluff more."
+              />
+              <StatCombo
+                combo="High River Aggression"
+                meaning="Over-Bluffs Rivers"
+                desc="Bets too much on final street. Call with mid-strength."
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const StatCombo = ({ combo, meaning, desc }: { combo: string; meaning: string; desc: string }) => (
+  <div className="bg-black/20 p-2 rounded-lg">
+    <span className="text-gold font-bold">{combo}</span>
+    <span className="text-cream/50"> → {meaning}</span>
+    <p className="text-cream/40 mt-0.5">{desc}</p>
+  </div>
+);
+
+// --- How Pros Use Analytics Section ---
+const HowProsSection = () => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-charcoal-light border border-white/5 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-3 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Activity size={14} className="text-gold" />
+          <span className="text-xs font-bold text-white uppercase">How Pros Use Analytics</span>
+        </div>
+        <ChevronDown size={14} className={`text-cream/30 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3 space-y-2 text-[10px]">
+              <ProTipItem
+                title="Track Tendencies Over Time"
+                desc="Check your stats weekly. Look for patterns in what's changing."
+              />
+              <ProTipItem
+                title="Exploit Instead of GTO"
+                desc="If opponent has a clear leak, exploit it. Don't play robotically."
+              />
+              <ProTipItem
+                title="Review Before Sessions"
+                desc="Spend 5 minutes reviewing past leaks before playing."
+              />
+              <ProTipItem
+                title="Volume = Confidence"
+                desc="Trust stats more with larger sample sizes. 100 hands is not enough."
+              />
+              <ProTipItem
+                title="Fix One Leak at a Time"
+                desc="Don't try to fix everything. Pick the highest-EV leak and focus."
+              />
+              <ProTipItem
+                title="Compare to Good Players"
+                desc="TAG/LAG ranges are benchmarks. Where do you fall?"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const ProTipItem = ({ title, desc }: { title: string; desc: string }) => (
+  <div className="flex gap-2 items-start">
+    <ArrowRight size={10} className="text-gold mt-0.5 shrink-0" />
+    <div>
+      <span className="text-gold font-bold">{title}</span>
+      <span className="text-cream/50"> - {desc}</span>
+    </div>
   </div>
 );
 
