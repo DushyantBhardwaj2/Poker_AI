@@ -29,5 +29,11 @@ const { title = "PokerSense AI - Tactical Poker Intelligence" } = Astro.props;
     >
       <slot />
     </AuthWrapper>
+
+    <script>
+      import { wakeupBackend } from '../lib/api';
+      // Automatically ping backend to warm up Render free-tier instances
+      wakeupBackend();
+    </script>
   </body>
 </html>

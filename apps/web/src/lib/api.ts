@@ -247,6 +247,17 @@ const getBaseUrl = () => {
 
 const API_URL = getBaseUrl();
 
+export const wakeupBackend = () => {
+  if (typeof window === 'undefined') return;
+  
+  // Fire and forget warmup request
+  const healthUrl = API_URL.replace('/api/v1', '/health');
+  fetch(healthUrl, { mode: 'no-cors' })
+    .catch(() => {
+      // Intentionally swallow errors so it doesn't pollute the console or block execution
+    });
+};
+
 import { getSessionToken } from './auth';
 
 /**

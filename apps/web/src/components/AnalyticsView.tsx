@@ -60,8 +60,11 @@ export const AnalyticsView: React.FC = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-        <div className="w-16 h-16 border-4 border-gold/20 border-t-gold rounded-full animate-spin"></div>
-        <p className="text-gold font-mono uppercase tracking-[0.3em] text-xs animate-pulse">Synchronizing Intelligence Data...</p>
+        <div className="w-16 h-16 border-4 border-gold/10 border-t-gold rounded-full animate-spin"></div>
+        <div className="text-center space-y-2">
+          <h3 className="text-gold font-black uppercase tracking-[0.2em] text-xs">Preparing Analytics</h3>
+          <p className="text-cream/40 text-[10px] uppercase tracking-wider">Waking backend services. This may take a moment...</p>
+        </div>
       </div>
     );
   }

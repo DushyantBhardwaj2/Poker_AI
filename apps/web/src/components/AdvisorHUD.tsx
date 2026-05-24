@@ -531,14 +531,12 @@ const CardsRequired: React.FC = () => (
 
 const AnalysisSkeleton = () => (
     <motion.div
-        className="space-y-4"
+        className="space-y-4 py-8 flex flex-col items-center justify-center text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
     >
-        <div className="h-32 bg-white/5 rounded-xl" />
-        <div className="grid grid-cols-2 gap-2.5">
-            <div className="h-16 bg-white/5 rounded-xl" />
-            <div className="h-16 bg-white/5 rounded-xl" />
-        </div>
+        <div className="w-12 h-12 border-4 border-gold/10 border-t-gold rounded-full animate-spin mb-4" />
+        <h3 className="text-gold font-black uppercase tracking-[0.2em] text-xs">Connecting to Analysis Engine...</h3>
+        <p className="text-cream/40 text-[10px] uppercase tracking-wider">Evaluating ranges and pot odds</p>
     </motion.div>
 );
