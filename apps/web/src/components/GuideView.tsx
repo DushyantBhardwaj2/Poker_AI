@@ -1,5 +1,5 @@
 import React from 'react';
-import { Book, Shield, Zap, TrendingUp, Info, AlertTriangle, Crosshair, HelpCircle, Layers, Lightbulb } from 'lucide-react';
+import { Book, Shield, TrendingUp, Layers, Lightbulb, AlertTriangle } from 'lucide-react';
 
 export const GuideView: React.FC = () => {
   const sections = [

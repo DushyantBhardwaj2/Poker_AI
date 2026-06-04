@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Home, Play, BookOpen, GraduationCap, Settings, Menu, X, ChevronLeft, ChevronRight, LogIn, Target, LogOut, User, TrendingUp, HelpCircle } from 'lucide-react';
 import { authClient, isAuthEnabled } from "../lib/auth";
 
-import { isAuthPath } from '../lib/auth-utils';
-
 interface SidebarProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;

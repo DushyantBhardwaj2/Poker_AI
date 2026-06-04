@@ -127,7 +127,8 @@ async def analyze_bluff(
         live_state = FeatureMapper.map_to_live_state(
             request.state,
             request.history,
-            opponent_profile
+            opponent_profile,
+            opponent_name=request.opponent_name
         )
         
         # 3. Predict
@@ -185,7 +186,7 @@ async def analyze_full(
             # Check if we're within time budget
             elapsed = (time.time() - start_time) * 1000
             if elapsed < ANALYSIS_TIMEOUT_MS:
-                live_state = FeatureMapper.map_to_live_state(request.state, request.history, opponent_profile)
+                live_state = FeatureMapper.map_to_live_state(request.state, request.history, opponent_profile, opponent_name=request.opponent_name)
                 bluff_result = detector.predict(live_state)
         except Exception as bd_err:
             log.warning("Bluff detection timed out or failed, using baseline", error=str(bd_err))
@@ -229,7 +230,8 @@ async def analyze_full(
                 data_completeness=completeness,
                 opponent_archetype=archetype,
                 vpip=vpip,
-                pfr=pfr
+                pfr=pfr,
+                bluff_probability=bluff_result["bluff_probability"]
             )
             pipelineucceeded = True
             log.info("Pipeline executed successfully", action=advice.action, errors=pipeline_errors)

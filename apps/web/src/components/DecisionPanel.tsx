@@ -1,5 +1,4 @@
-import React from 'react';
-import { Target, TrendingUp, AlertTriangle, Info, Zap } from 'lucide-react';
+import { Target, TrendingUp, Info, Zap } from 'lucide-react';
 import { Tooltip } from './Tooltip';
 
 interface DecisionPanelProps {

@@ -32,7 +32,7 @@ export async function getSessionToken(): Promise<string | null> {
  * Reactive hook-like function for components to subscribe to auth state
  * In Astro/React, we can use this in a useEffect or a custom hook
  */
-export function subscribeToAuth(callback: (session: any) => void) {
+export function subscribeToAuth(_callback: (session: any) => void) {
   // BetterAuth doesn't have a direct "onAuthStateChanged" in the basic client,
   // but we can poll or use a proxy. For now, we'll rely on manual checks
   // or the NeonAuthUIProvider's internal state.

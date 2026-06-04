@@ -199,6 +199,48 @@ ELSE:
 | `deck.py` | Card operations |
 | `stats_repository.py` | Data access |
 
+---
+
+## 🔒 Security Hardening
+
+To ensure a production-ready environment, this project underwent rigorous security hardening:
+- **Authentication Bypass Mitigation:** Isolated legacy `SKIP_AUTH` flags to strictly local development, preventing token evasion in production.
+- **CORS Lockdown:** Removed wildcard (`*`) CORS headers, replacing them with explicit Vercel and local origins.
+- **Data Leak Prevention:** Purged local development artifacts (e.g., `localhost.har`, `.env` backups) from the deployment context using strict `.dockerignore` and `.gitignore` policies.
+- **Schema Validation:** Enforced strict Pydantic database models in the SQLAlchemy pipeline, fixing fatal field mismatches (`name` vs. `session_name`) that otherwise triggered 500 errors.
+
+---
+
+## 🚢 Deployment Architecture
+
+- **Frontend (Vercel):** SSR using Astro for near-zero JavaScript payload on the initial load, with React islands hydrating interactively for complex real-time poker components.
+- **Backend (Render):** Dockerized Python FastAPI application tailored to fit within stringent free-tier resource limits.
+- **Database (Neon Serverless Postgres):** Provides automated scale-to-zero capabilities and connection pooling optimized for bursty application traffic.
+
+---
+
+## ⚡ Production Challenges & Cold-Start Handling
+
+Deploying an ML-integrated backend to a serverless environment presented significant latency challenges:
+- **Challenge:** Render's free tier spins down the FastAPI server after 15 minutes of inactivity. When a user requests advice, the first boot/ML-load could take up to 40 seconds.
+- **Solution (The "Wakeup" Strategy):** Implemented a non-blocking `wakeupBackend()` script on the frontend that hits the API's `/health` endpoint the millisecond the homepage loads. This effectively shifts the spin-up penalty into the background while the user navigates the UI.
+- **Solution (UX Masking):** Engineered smooth, highly styled Framer Motion fallbacks (`<AnalysisSkeleton />` and "Waking backend services...") to absorb residual latency, transforming a frustrating hang into a professional "calculation" phase.
+
+---
+
+## 🔮 Future Improvements
+
+1. **Vercel Edge Functions:** Porting the core mathematical EV models to Edge functions to bypass container spin-up times entirely.
+2. **WebSockets for Live Play:** Upgrading the current REST architecture to WebSockets for instant, sub-100ms multi-device syncing across the physical poker table.
+3. **Advanced ML Feature Engineering:** Serving pre-computed player classification clusters directly from Redis/Memcached to reduce the CPU burden on the primary API.
+
+---
+
+<p align="center">
+  <i>"Hold'em is to stud what chess is to checkers." – Johnny Moss</i>
+</p>
+
+
 ### AI Engine (`packages/ai/`)
 | Module | Purpose |
 |--------|---------|

@@ -78,6 +78,11 @@ class ShowdownUseCase:
             
         state.pot = 0
         state.pots = []
+        state.current_bet = 0.0
+        state.last_raise_amount = 0.0
+        for p in state.players:
+            p.total_contributed = 0.0
+            p.current_bet = 0.0
         
         return state, {
             "pots_results": results,

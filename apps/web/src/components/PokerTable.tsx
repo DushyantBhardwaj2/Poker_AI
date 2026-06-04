@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import {
   startGame,
@@ -12,10 +12,7 @@ import {
   type GameState,
   type ActionType,
   type Card,
-  type ActionRecord,
   type FullAnalysisResponse,
-  type PlayerStatus,
-  type Player
 } from '../lib/api';
 import { usePokerStore } from '../stores/usePokerStore';
 import { SetupView } from './SetupView';
@@ -178,11 +175,12 @@ export default function PokerTable() {
         big_blind: state.big_blind,
         round: state.round,
         community_cards: state.community_cards,
-        pots: state.pots
+        pots: state.pots,
+        actionHistory: []
       });
 
       // Initialize hand setup from Session Tracker players
-      const setupPlayers = names.map((name, i) => ({ name, stack: initialStack }));
+      const setupPlayers = names.map((name) => ({ name, stack: initialStack }));
       setHandSetupPlayers(setupPlayers);
 
       // Set default roles
@@ -242,7 +240,8 @@ export default function PokerTable() {
         dealer_index: state.dealer_index,
         round: state.round,
         small_blind: state.small_blind,
-        big_blind: state.big_blind
+        big_blind: state.big_blind,
+        actionHistory: []
       });
 
       setPickingFor('hole');
@@ -321,12 +320,11 @@ export default function PokerTable() {
     store.setError(null);
     try {
       const actingPlayer = store.players[store.current_player_index];
-      
-      // Optimistic update
-      store.updatePlayerAction(actingPlayer.name, type, amount);
 
-      const newState = await processAction({
-        players: store.players,
+      // Snapshot pre-action state for the API call (optimistic update below must not corrupt the request)
+      const preActionPlayers = store.players.map(p => ({ ...p }));
+      const preActionState = {
+        players: preActionPlayers,
         community_cards: store.community_cards,
         pots: store.pots,
         pot: store.pot,
@@ -337,10 +335,28 @@ export default function PokerTable() {
         round: store.round,
         small_blind: store.small_blind,
         big_blind: store.big_blind
-      }, {
+      };
+
+      // Optimistic update (immediate UI feedback)
+      store.updatePlayerAction(actingPlayer.name, type, amount);
+
+      const newState = await processAction(preActionState, {
         player_index: store.current_player_index,
         action_type: type,
         amount
+      });
+
+      // Record this action in history for bluff detection
+      const actualAmount = type === 'call'
+        ? Math.max(0, store.current_bet - actingPlayer.current_bet)
+        : type === 'all-in'
+          ? actingPlayer.stack
+          : amount;
+      store.recordAction({
+        player_name: actingPlayer.name,
+        action_type: type,
+        amount: actualAmount,
+        street: store.round
       });
       
       // Sync store with actual server state
@@ -484,7 +500,7 @@ export default function PokerTable() {
       });
 
       setPickingWinner(false);
-      await fetchStats();
+      fetchStats();
     } catch (err: any) {
       store.setError("Failed to finalize hand: " + err.message);
     } finally {
@@ -500,8 +516,20 @@ export default function PokerTable() {
     setAiLoading(true);
     store.setError(null);
     try {
-      // Find the last acting opponent
-      const opponentName = store.players.length > 1 ? store.players[1].name : "Unknown";
+      // Pick the opponent: last aggressive opponent in history, fallback to first non-hero
+      const opponentName = (() => {
+        const heroName = store.players[0]?.name;
+        const reversed = [...store.actionHistory].reverse();
+        const aggressiveLast = reversed.find(a =>
+          a.player_name !== heroName && (a.action_type === 'raise' || a.action_type === 'all-in')
+        );
+        if (aggressiveLast) return aggressiveLast.player_name;
+        const callLast = reversed.find(a =>
+          a.player_name !== heroName && a.action_type === 'call'
+        );
+        if (callLast) return callLast.player_name;
+        return store.players.length > 1 ? store.players[1].name : "Unknown";
+      })();
 
       const analysis = await analyzeFull(
         {
@@ -517,7 +545,7 @@ export default function PokerTable() {
             small_blind: store.small_blind,
             big_blind: store.big_blind
         },
-        [], // history - for now passing empty, store doesn't track records yet
+        store.actionHistory,
         opponentName,
         me.hole_cards,
         1000

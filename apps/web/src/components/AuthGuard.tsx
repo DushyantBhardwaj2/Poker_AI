@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { authClient, isAuthEnabled } from "../lib/auth";
-import { isAuthPath, DEFAULT_AUTH_REDIRECT } from '../lib/auth-utils';
+import { isAuthPath } from '../lib/auth-utils';
 
 interface AuthGuardProps {
   children: React.ReactNode;

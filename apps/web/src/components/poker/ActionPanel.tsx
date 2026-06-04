@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { usePokerStore } from '../../stores/usePokerStore';
 import { PokerAPI } from '../../lib/api';
 
@@ -21,9 +21,9 @@ export default function ActionPanel() {
     if (actionInProgress) return;
     setActionInProgress(true);
 
+    let previousPlayers: typeof players = [];
     try {
-      const previousPlayers = JSON.parse(JSON.stringify(players));
-      const previousIndex = current_player_index;
+      previousPlayers = JSON.parse(JSON.stringify(players));
 
       updatePlayerAction(activePlayer.name, action, amount);
       nextPlayer();
@@ -34,7 +34,9 @@ export default function ActionPanel() {
         await PokerAPI.recordAction(sessionId, activePlayer.name, action, amount);
       }
     } catch (err: any) {
-      setPlayers(previousPlayers);
+      if (previousPlayers.length > 0) {
+        setPlayers(previousPlayers);
+      }
       setError(err.message || 'Action failed - state restored, please retry');
     } finally {
       setActionInProgress(false);

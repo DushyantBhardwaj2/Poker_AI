@@ -505,10 +505,9 @@ class StatsRepository:
         session = GameSession(
             session_id=generate_uuid(),
             user_id=user_id,
-            name=name,
+            session_name=name,
             total_hands=0,
-            total_winnings=0.0,
-            session_features=default_session_features()
+            total_winnings=0.0
         )
         self.db.add(session)
         self.db.commit()

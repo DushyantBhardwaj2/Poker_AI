@@ -1,6 +1,6 @@
 import React from 'react';
-import type { TheoryData, Chapter } from './types';
-import { BookOpen, ChevronRight, Target, Shield, Cpu, Activity } from 'lucide-react';
+import type { TheoryData } from './types';
+import { Shield, Cpu, Activity } from 'lucide-react';
 
 interface SidebarNavProps {
   data: TheoryData;

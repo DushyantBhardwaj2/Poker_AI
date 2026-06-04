@@ -19,7 +19,6 @@ export const CommunityCardsInput: React.FC<CommunityCardsInputProps> = ({
   existingCards,
   holeCards,
   onConfirm,
-  onCancel
 }) => {
   const [selectedCards, setSelectedCards] = useState<Card[]>([]);
 

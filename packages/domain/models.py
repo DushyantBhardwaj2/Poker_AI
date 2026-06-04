@@ -149,6 +149,7 @@ class DataQuality(BaseModel):
 class StrategicTheme(str, Enum):
     VALUE_BETTING = "Value Betting"
     BLUFFING = "Bluffing"
+    BLUFF_CATCHING = "Bluff Catching"
     POT_CONTROL = "Pot Control"
     SEMI_BLUFF = "Semi-Bluff"
     DEFENDING_BLINDS = "Defending Blinds"

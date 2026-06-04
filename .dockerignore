@@ -8,8 +8,7 @@ __pycache__
 .pytest_cache
 .venv
 venv
-ml_modules/data/
-ml_modules/poker-hand-histories/
+ml_modules/
 tests/
 archive/
 book/

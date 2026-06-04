@@ -1,4 +1,3 @@
-import React from 'react';
 import { usePokerStore } from '../../stores/usePokerStore';
 
 export default function PlayerList() {

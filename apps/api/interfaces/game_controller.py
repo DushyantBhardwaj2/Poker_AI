@@ -246,43 +246,51 @@ class StatelessShowdownRequest(BaseModel):
     bluffer_names: Optional[List[str]] = Field(default_factory=list)
 
 @router.post("/showdown")
-async def stateless_showdown(request: StatelessShowdownRequest, user_id: uuid.UUID = Depends(get_current_user_id), db: Session = Depends(get_db)):
+async def stateless_showdown(request: StatelessShowdownRequest, user_id: uuid.UUID = Depends(get_current_user_id)):
     try:
         use_case = ShowdownUseCase()
         new_state, result = use_case.execute(request.state)
 
-        # Update stats in database for ALL players involved in this hand
-        repo = StatsRepository(db)
-
-        # Extract winner results to identify potential bluffs if not explicitly provided
-        pots_results = result.get("pots_results", [])
-        explicit_bluffers = request.bluffer_names or []
-
-        for player in request.state.players:
-            # Detect bluff: 
-            # 1. Explicitly marked by frontend
-            # 2. Or reached showdown with a High Card and was NOT a winner (automatic heuristic)
-            is_bluff = player.name in explicit_bluffers
-
-            if not is_bluff:
-                # Heuristic: Reached showdown with High Card but lost
-                all_cards = player.hole_cards + request.state.community_cards
-                if len(all_cards) >= 5:
-                    # Best hand from all available cards
-                    hand_value = HandEvaluator.evaluate_7_cards(all_cards)
-                    was_winner = any(player.name in pr["winners"] for pr in pots_results)
-                    if hand_value and hand_value.rank == HandRank.HIGH_CARD and not was_winner:
-                        is_bluff = True
-
-            repo.update_player_stats(
-                user_id=user_id,
-                name=player.name,
-                vpip_this_hand=player.vpip_this_hand,
-                pfr_this_hand=player.pfr_this_hand,
-                is_bluff=is_bluff
-            )
-
+        # Return showdown result immediately — stats update is async
         return {"new_state": new_state.dict(), "result": result}
     except Exception as e:
         logger.error("Error in showdown", error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        result = locals().get("result")
+        if result is not None:
+            _update_showdown_stats(request, result, user_id)
+
+
+def _update_showdown_stats(request: StatelessShowdownRequest, result: dict, user_id: uuid.UUID):
+    """Best-effort stats update after showdown — failures are logged, never crash the player experience."""
+    try:
+        from packages.domain.database import SessionLocal
+        from packages.domain.stats_repository import StatsRepository
+        db = SessionLocal()
+        try:
+            repo = StatsRepository(db)
+            pots_results = result.get("pots_results", [])
+            explicit_bluffers = request.bluffer_names or []
+
+            for player in request.state.players:
+                is_bluff = player.name in explicit_bluffers
+                if not is_bluff:
+                    all_cards = player.hole_cards + request.state.community_cards
+                    if len(all_cards) >= 5:
+                        hand_value = HandEvaluator.evaluate_7_cards(all_cards)
+                        was_winner = any(player.name in pr["winners"] for pr in pots_results)
+                        if hand_value and hand_value.rank == HandRank.HIGH_CARD and not was_winner:
+                            is_bluff = True
+                repo.update_player_stats(
+                    user_id=user_id,
+                    name=player.name,
+                    vpip_this_hand=player.vpip_this_hand,
+                    pfr_this_hand=player.pfr_this_hand,
+                    is_bluff=is_bluff,
+                )
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error("Showdown stats update failed (non-critical)", error=str(e))

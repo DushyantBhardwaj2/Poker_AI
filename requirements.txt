@@ -14,4 +14,3 @@ asgi_correlation_id
 httpx
 PyJWT[crypto]
 cryptography
--e ./packages/domain

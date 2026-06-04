@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Play, BookOpen, GraduationCap, ChevronRight, Award, Target, Brain, UserPlus, TrendingUp, Activity, Zap, Crosshair, Users } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Play, BookOpen, ChevronRight, Target, Brain, UserPlus, TrendingUp, Activity, Zap, Crosshair } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { authClient } from '../lib/auth';
 import { AuthProvider } from './AuthProvider';
@@ -54,91 +54,6 @@ const ProbabilityRing = () => (
     <circle cx="50" cy="50" r="25" fill="none" stroke="url(#ringGrad)" strokeWidth="0.3" />
   </motion.svg>
 );
-
-// Animated stat line
-const AnimatedStatLine = ({ label, value, delay }: { label: string; value: string; delay: number }) => (
-  <motion.div
-    className="flex justify-between items-center text-xs"
-    initial={{ opacity: 0, x: -10 }}
-    whileInView={{ opacity: 1, x: 0 }}
-    viewport={{ once: true }}
-    transition={{ duration: 0.5, delay }}
-  >
-    <span className="text-cream/40">{label}</span>
-    <motion.span
-      className="text-gold font-mono"
-      animate={{ opacity: [0.7, 1, 0.7] }}
-      transition={{ duration: 2, repeat: Infinity, delay }}
-    >
-      {value}
-    </motion.span>
-  </motion.div>
-);
-
-// Feature Card - Updated for product-focused messaging
-const FeatureCard = ({ icon: Icon, title, desc, delay, index }: { icon: any; title: string; desc: string; delay: number; index: number }) => {
-  const cardVariants = {
-    hidden: { opacity: 0, y: 40 },
-    visible: { opacity: 1, y: 0, transition: { ...easeOutTransition, delay: delay * 0.1 } }
-  };
-
-  return (
-    <motion.div
-      variants={cardVariants}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-50px" }}
-      whileHover={{ y: -4, transition: { duration: 0.3 } }}
-      className="group relative bg-charcoal-light border border-white/5 p-5 rounded-2xl overflow-hidden"
-    >
-      {/* Glow effect on hover */}
-      <motion.div
-        className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-        style={{ background: "radial-gradient(ellipse at center, rgba(212,175,55,0.15) 0%, transparent 70%)" }}
-      />
-
-      {/* Corner accent */}
-      <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden">
-        <div className="absolute top-[-20px] right-[-20px] w-40 h-40 bg-gold/5 rotate-45 group-hover:rotate-45 transition-transform duration-500" />
-      </div>
-
-      <div className="relative z-10 space-y-3">
-        <motion.div
-          className="w-10 h-10 bg-gold/10 rounded-xl flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-charcoal transition-all duration-500"
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 2, delay: delay * 0.2, repeat: Infinity }}
-        >
-          <Icon size={20} />
-        </motion.div>
-
-        <h3 className="text-base font-black text-white uppercase tracking-wider">{title}</h3>
-        <p className="text-xs text-cream/50 leading-relaxed">{desc}</p>
-
-        {/* Stats for each card */}
-        <div className="pt-2 border-t border-white/5 space-y-1">
-          {index === 0 && (
-            <>
-              <AnimatedStatLine label="Win Rate" value="+12%" delay={0.1} />
-              <AnimatedStatLine label="Analyzed" value="2.4K" delay={0.15} />
-            </>
-          )}
-          {index === 1 && (
-            <>
-              <AnimatedStatLine label="Bluff Read" value="87%" delay={0.1} />
-              <AnimatedStatLine label="Patterns" value="156+" delay={0.15} />
-            </>
-          )}
-          {index === 2 && (
-            <>
-              <AnimatedStatLine label="EV Accuracy" value="94%" delay={0.1} />
-              <AnimatedStatLine label="Decisions" value="10K+" delay={0.15} />
-            </>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 // CTA Button
 const CTAButton = ({ href, primary, children, icon: Icon }: { href: string; primary?: boolean; children: React.ReactNode; icon?: any }) => {

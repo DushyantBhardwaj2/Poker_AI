@@ -16,7 +16,8 @@ from typing import List, Optional, Dict, Any, Tuple
 from enum import Enum
 from packages.domain.models import (
     Card, ActionType, Player, GameRound, AdvisorResponse,
-    ConfidenceLevel, StrategicTheme, KeyFactor, DataQuality
+    ConfidenceLevel, StrategicTheme, KeyFactor, DataQuality,
+    Explanation, TacticalData
 )
 
 
@@ -478,13 +479,15 @@ def map_to_semantics(
     confidence: ConfidenceAssessment,
     action: ActionType,
     opponent_archetype: Optional[str] = None,
-    sample_size: int = 0
+    sample_size: int = 0,
+    bluff_probability: float = 0.15
 ) -> SemanticMapping:
     """
     Stage 6: Translates raw numbers and flags into human-readable labels.
     Rule-based mapping (NOT generative).
 
     Implements Section 26.3: Show numbers alongside archetype, high sample size threshold
+    Consumes ML bluff signal only when sample_size >= 100 (Section 26.1 hard gate).
     """
     equity = tactical_analysis.equity
     pot_odds = tactical_analysis.pot_odds
@@ -521,14 +524,15 @@ def map_to_semantics(
     else:
         risk_level = "Medium Variance"
 
-    # Strategic Theme
+    # Strategic Theme — includes bluff probability when sample is sufficient
+    has_bluff_data = sample_size >= 100  # Section 26.1 hard gate
     if action in [ActionType.RAISE, ActionType.ALL_IN]:
         if equity >= 0.7:
             theme = StrategicTheme.VALUE_BETTING
         else:
             theme = StrategicTheme.BLUFFING
     elif action == ActionType.CALL:
-        if "BLUFFING" in str(tactical_analysis.flags):
+        if has_bluff_data and bluff_probability > 0.4:
             theme = StrategicTheme.BLUFF_CATCHING
         else:
             theme = StrategicTheme.POT_CONTROL
@@ -550,6 +554,12 @@ def map_to_semantics(
         key_factors.append(KeyFactor(
             headline="Favorable Odds",
             description="Pot odds justify the call mathematically."
+        ))
+
+    if has_bluff_data and bluff_probability > 0.4:
+        key_factors.append(KeyFactor(
+            headline="Bluff Pattern Detected",
+            description=f"ML model indicates elevated bluff probability ({bluff_probability:.0%}) based on betting patterns."
         ))
 
     if opponent_archetype and opponent_archetype != "Unknown":
@@ -598,6 +608,11 @@ NARRATIVE_TEMPLATES = {
         "The opponent's betting pattern suggests potential aggression. Calling preserves equity.",
         "Your hand has sufficient showdown value to justify calling. The opponent may be bluffing.",
         "Given the bet size and board texture, this appears to be a bluff-catching spot.",
+    ],
+    "bluff_read": [
+        "The ML model detects a high bluff probability ({bluff_probability:.0%}) in opponent's betting patterns. This is a favorable bluff-catching spot.",
+        "Opponent's betting history indicates elevated bluff frequency ({bluff_probability:.0%}). Calling has positive expectation.",
+        "Elevated bluff probability ({bluff_probability:.0%}) detected. The opponent's line is inconsistent with value holdings.",
     ],
     "semi_bluff": [
         "Your draw has equity potential. Raising adds fold equity to natural equity.",
@@ -656,7 +671,9 @@ def render_narrative(
     confidence: ConfidenceAssessment,
     action: ActionType,
     pot_size: float,
-    call_amount: float
+    call_amount: float,
+    bluff_probability: float = 0.15,
+    sample_size: int = 0
 ) -> NarrativeOutput:
     """
     Stage 7: The ONLY step where text generation occurs.
@@ -668,11 +685,13 @@ def render_narrative(
     import re
     import random
 
+    has_bluff_data = sample_size >= 100
+
     # Select template category based on action
     category_map = {
         ActionType.RAISE: "value_bet" if semantic_mapping.equity_label in ["Strong Favorite", "Overwhelming Favorite"] else "semi_bluff",
         ActionType.ALL_IN: "value_bet",
-        ActionType.CALL: "bluff_catch",
+        ActionType.CALL: "bluff_read" if (has_bluff_data and bluff_probability > 0.4) else "bluff_catch",
         ActionType.FOLD: "fold",
         ActionType.CHECK: "check",
     }
@@ -688,11 +707,15 @@ def render_narrative(
     raw_text = random.choice(templates)
 
     # Format with semantic data
-    summary = raw_text.format(
-        equity_label=semantic_mapping.equity_label,
-        pot_odds_label=semantic_mapping.pot_odds_label,
-        risk_level=semantic_mapping.risk_level
-    )
+    try:
+        summary = raw_text.format(
+            equity_label=semantic_mapping.equity_label,
+            pot_odds_label=semantic_mapping.pot_odds_label,
+            risk_level=semantic_mapping.risk_level,
+            bluff_probability=bluff_probability,
+        )
+    except KeyError:
+        summary = raw_text
 
     # Apply probabilistic language filter
     for pattern, replacement in PROBABILISTIC_REPLACEMENTS.items():
@@ -702,7 +725,7 @@ def render_narrative(
     verdict_templates = {
         ActionType.RAISE: "Raise for Value",
         ActionType.ALL_IN: "All In",
-        ActionType.CALL: "Call the Bet",
+        ActionType.CALL: "Bluff Catch" if (has_bluff_data and bluff_probability > 0.4) else "Call the Bet",
         ActionType.FOLD: "Fold",
         ActionType.CHECK: "Check",
     }
@@ -807,24 +830,42 @@ def build_delivery_response(
     tactical: TacticalAnalysis,
     action: ActionType,
     pot_odds: float,
-    ev: float
+    ev: float,
+    bluff_probability: float = 0.15
 ) -> AdvisorResponse:
     """
     Stage 9: Builds the final AdvisorResponse for frontend delivery.
     """
-    directive = narrative.verdict
+    explanation_structured = Explanation(
+        main=narrative.summary,
+        pot_odds_theory=f"Pot odds of {pot_odds:.1%} vs equity of {tactical.equity:.1%}" if pot_odds > 0 else None,
+        fundamental_theorem=None,
+        bluff_context=f"Bluff probability: {bluff_probability:.1%}" if bluff_probability > 0.15 else None
+    )
+
+    tactical_data = TacticalData(
+        win_probability=tactical.equity,
+        adjusted_win_probability=tactical.equity,
+        bluff_probability=bluff_probability,
+        pot_odds=pot_odds,
+        expected_value=ev
+    )
 
     return AdvisorResponse(
         action=action,
-        strategic_directive=directive,
+        strategic_directive=narrative.verdict,
         confidence_level=confidence.confidence_level,
         strategic_theme=semantic.strategic_theme,
+        key_factors=semantic.key_factors,
+        explanation_structured=explanation_structured,
+        tactical_data=tactical_data,
         data_quality=confidence.data_quality,
         explanation=narrative.summary,
-        explanation_structured=narrative.factors,
-        alternative_line=narrative.alternative_line,
-        strategic_theme_additional=semantic.risk_level
-        # Note: All other legacy fields populated by caller
+        ev=ev,
+        pot_odds=pot_odds,
+        adjusted_win_probability=tactical.equity,
+        bluff_probability=bluff_probability,
+        theory_tip=semantic.main_theme if semantic.main_theme else None,
     )
 
 
@@ -845,7 +886,8 @@ def run_advisor_pipeline(
     data_completeness: float = 1.0,
     opponent_archetype: Optional[str] = None,
     vpip: float = 0.25,
-    pfr: float = 0.15
+    pfr: float = 0.15,
+    bluff_probability: float = 0.15
 ) -> Tuple[AdvisorResponse, List[str]]:
     """
     Main pipeline orchestrator that runs all 9 stages sequentially.
@@ -898,10 +940,10 @@ def run_advisor_pipeline(
     from packages.ai.move_recommender import MoveRecommender
     base = MoveRecommender.recommend(win_probability, pot_size, call_amount, player_stack)
     action = ActionType(base["action"])
-    semantic = map_to_semantics(tactical, confidence, action, opponent_archetype)
+    semantic = map_to_semantics(tactical, confidence, action, opponent_archetype, sample_size, bluff_probability)
 
     # Stage 7: Narrative Renderer
-    narrative = render_narrative(semantic, confidence, action, pot_size, call_amount)
+    narrative = render_narrative(semantic, confidence, action, pot_size, call_amount, bluff_probability, sample_size)
 
     # Stage 8: Response Validator
     validation = validate_response(narrative, semantic, confidence, tactical)
@@ -912,7 +954,7 @@ def run_advisor_pipeline(
     # Stage 9: UI Delivery
     response = build_delivery_response(
         narrative, semantic, confidence, tactical, action,
-        tactical.pot_odds, tactical.ev
+        tactical.pot_odds, tactical.ev, bluff_probability
     )
 
     return response, errors

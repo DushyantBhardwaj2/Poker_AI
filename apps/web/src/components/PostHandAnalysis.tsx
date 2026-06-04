@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, TrendingUp, AlertCircle, RefreshCw, BarChart, BookOpen, Skull, SplitSquareHorizontal } from 'lucide-react';
+import { Award, TrendingUp, RefreshCw, BarChart, BookOpen, Skull, SplitSquareHorizontal } from 'lucide-react';
 
 interface PostHandAnalysisProps {
   showdownResult: any;

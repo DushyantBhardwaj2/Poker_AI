@@ -24,3 +24,13 @@ When working on PokerSense AI, you are operating as a Senior Full-Stack Architec
 
 ## 4. Primary Reference Material
 - **Sklansky Summary:** For generating explanations and reasoning, your primary structured reference for poker theory is `docs/poker_theory_summary.md`. Use the concepts outlined in this document as the foundation for your analysis. **Note:** This document has been significantly expanded to cover a wide range of fundamental and advanced topics (Deception, Semi-Bluffing, Positional Play, etc.) and should be considered the comprehensive knowledge base for strategic reasoning.
+
+## 5. Pre-Deployment Audit Checklist
+When asked to audit or prepare the project for deployment, follow `docs/pre_deployment_audit.md` and `.claude/agent_prep.md`. Priority order: SECURITY > ANALYTICS > DEPLOYMENT > CODE QUALITY.
+
+### Known Issues to Check
+- **Security**: `.env` live credentials, `SKIP_AUTH=true`, `localhost.har` file, `poker_ai.db`, wide CORS regex
+- **Analytics Page**: `AnalyticsView.tsx` calls `getSessionAnalytics('')` → empty string is falsy, falls to `/latest` endpoint. Session creation flow gap between gameplay and analytics tracking.
+- **DB Schema**: `GameSession.name` vs `session_name` mismatch
+- **Deployment**: Vercel account mismatch (team vs personal), Render free tier spin-down, no version endpoint
+- **Docker**: Editable install `-e ./packages/domain` in requirements.txt, Docker copies entire project including ml_modules/

@@ -79,10 +79,10 @@ async def verify_neon_token(
     Returns the user data (dict with sub, email, name) on success.
     Raises HTTPException (401) if authentication fails.
     """
-    # DEVELOPMENT OVERRIDE: Allow skipping auth if explicitly requested via env var
-    if os.getenv("SKIP_AUTH", "").lower() == "true":
+    # DEVELOPMENT OVERRIDE: Allow skipping auth ONLY if explicitly requested AND environment is strictly local
+    if os.getenv("SKIP_AUTH", "").lower() == "true" and os.getenv("ENVIRONMENT", "").lower() in ["local", "development"]:
         test_id = "00000000-0000-0000-0000-000000000000"
-        print(f"[Auth] SKIP_AUTH enabled; returning test user {test_id}")
+        print(f"[Auth] SKIP_AUTH enabled in local environment; returning test user {test_id}")
         return {
             "user_id": test_id,
             "sub": test_id,

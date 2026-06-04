@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Users, Plus, Play, Trash2 } from 'lucide-react';
 import { usePokerStore } from '../../stores/usePokerStore';
 import { PokerAPI } from '../../lib/api';

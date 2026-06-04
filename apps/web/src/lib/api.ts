@@ -275,10 +275,6 @@ const getHeaders = async () => {
     const token = await getSessionToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-    } else {
-      // In a production environment, we might want to redirect here,
-      // but for now we'll throw an error that the caller can handle.
-      throw new Error('AUTHENTICATION_REQUIRED');
     }
   }
 
@@ -543,7 +539,10 @@ export async function getAllHandHistory(limit = 50): Promise<HandHistory[]> {
   return handleResponse(res);
 }
 
-export async function getSessionAnalytics(sessionId: string): Promise<SessionAnalytics> {
+export async function getSessionAnalytics(sessionId?: string): Promise<SessionAnalytics> {
+  if (sessionId === '') {
+    throw new Error("Invalid session ID: Cannot be an empty string");
+  }
   const url = sessionId 
     ? `${API_URL}/stats/session/${sessionId}/analytics`
     : `${API_URL}/stats/session/latest/analytics`;

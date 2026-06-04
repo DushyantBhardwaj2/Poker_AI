@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { authClient, isAuthEnabled } from '../../lib/auth';
 import { isAuthPath } from '../../lib/auth-utils';
-import { Mail, Lock, LogIn, AlertCircle, ArrowRight, Settings } from 'lucide-react';
+import { Mail, Lock, LogIn, AlertCircle, ArrowRight } from 'lucide-react';
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +16,7 @@ export const LoginForm: React.FC = () => {
     }
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!isAuthEnabled) return;
     

@@ -3,7 +3,6 @@ import {
   User, 
   ArrowUp, 
   ArrowDown, 
-  Check, 
   Play, 
   RotateCcw,
   Target

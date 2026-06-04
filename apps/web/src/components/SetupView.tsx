@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, RefreshCw, Users, Database, Coins, Trophy, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Play, RefreshCw, Users, Database, Coins, Trophy, Trash2, AlertCircle } from 'lucide-react';
 
 interface SetupViewProps {
   playerNames: string[];

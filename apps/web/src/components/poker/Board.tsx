@@ -1,4 +1,3 @@
-import React from 'react';
 import { usePokerStore } from '../../stores/usePokerStore';
 import { ChevronRight } from 'lucide-react';
 

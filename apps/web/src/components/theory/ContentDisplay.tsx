@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Chapter } from './types';
 import { ChapterSection } from './ChapterSection';
-import { ArrowRight, Info, Crosshair, Terminal, Zap, Target, AlertTriangle, Lightbulb, Link2, BookOpen } from 'lucide-react';
+import { ArrowRight, Crosshair, Terminal, Target, AlertTriangle, Lightbulb, Link2, BookOpen } from 'lucide-react';
 
 interface ContentDisplayProps {
   chapter: Chapter;

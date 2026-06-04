@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   BrainCircuit,
-  Target,
   ShieldAlert,
   ShieldCheck,
   Zap,
@@ -9,7 +8,6 @@ import {
   Eye,
   BarChart,
   AlertTriangle,
-  Info,
   CreditCard,
   ChevronDown,
   ChevronUp,
@@ -106,7 +104,7 @@ export function AdvisorHUD({ analysis, loading, onRefresh, hasCards = true }: Ad
                     </motion.button>
                 )}
               </div>
-              <ModeToggle mode={mode} onModeChange={setMode} confidenceStyles={confidenceStyles} />
+              <ModeToggle mode={mode} onModeChange={setMode} />
             </div>
 
             {/* Decay Details - collapsible */}
@@ -159,7 +157,7 @@ export function AdvisorHUD({ analysis, loading, onRefresh, hasCards = true }: Ad
 }
 
 // --- Mode Toggle ---
-const ModeToggle: React.FC<{ mode: ViewMode, onModeChange: (m: ViewMode) => void, confidenceStyles: any }> = ({ mode, onModeChange, confidenceStyles }) => (
+const ModeToggle: React.FC<{ mode: ViewMode, onModeChange: (m: ViewMode) => void }> = ({ mode, onModeChange }) => (
     <motion.div
         className="flex items-center gap-1 p-0.5 rounded-full bg-black/20 border border-white/[0.05]"
         layout

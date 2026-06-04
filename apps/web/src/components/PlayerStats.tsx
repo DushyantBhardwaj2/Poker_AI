@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, TrendingUp, AlertCircle, Clock, Shield, Info, ChevronDown, ChevronUp, Edit3, Target, Zap, Eye, Brain, AlertTriangle } from 'lucide-react';
+import { Users, Shield, Info, ChevronDown, ChevronUp, Eye, Brain, AlertTriangle, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tooltip } from './Tooltip';
 import type { OpponentProfile } from '../lib/api';

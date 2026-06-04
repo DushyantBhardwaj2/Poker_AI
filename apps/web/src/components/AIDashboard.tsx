@@ -1,4 +1,3 @@
-import React from 'react';
 import { AdvisorHUD } from './AdvisorHUD';
 import { PlayerStats } from './PlayerStats';
 import { PostHandAnalysis } from './PostHandAnalysis';
@@ -23,7 +22,6 @@ export function AIDashboard({
   showdownResult,
   playerStats,
   onNewHand,
-  theoryMode,
   isPlayerTurn = false,
   hasCards = false,
   userName = 'You'

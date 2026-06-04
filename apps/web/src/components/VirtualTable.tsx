@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { User, Wallet, Coins, Target, UserPlus, UserMinus, XCircle, Plus, Eye, Key } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, Coins, Target, UserPlus, UserMinus, XCircle, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { GameState, Player, ActionType, PlayerStatus } from '../lib/api';
+import type { Player } from '../lib/api';
 import { CardComponent, CardBack } from './CardComponent';
 
 // --- Polished Slot-Based Spatial Layout ---
@@ -50,13 +50,13 @@ interface PlayerPodProps {
 }
 
 const PlayerPod: React.FC<PlayerPodProps> = ({
-  player, index, numPlayers, isActive, isDealer, onSitOut, onLeave, onUpdateStack, position
+  player, index, isActive, isDealer, onSitOut, onLeave, onUpdateStack, position
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [isEditingStack, setIsEditingStack] = useState(false);
   const [tempStack, setTempStack] = useState(player.stack.toString());
 
-  const handleStackSubmit = (e?: React.FormEvent) => {
+  const handleStackSubmit = (e?: React.SyntheticEvent) => {
     e?.preventDefault();
     const amount = parseInt(tempStack);
     if (!isNaN(amount)) onUpdateStack?.(index, amount);
@@ -191,7 +191,7 @@ const PlayerPod: React.FC<PlayerPodProps> = ({
 
 // --- Main Virtual Table ---
 export const VirtualTable: React.FC<any> = ({
-  gameState, onOpenCardInput, onRefillStack, onUpdatePlayerStatus, onRemovePlayer, onUpdateStack, onRotateDealer, onUndo, hasUndo
+  gameState, onOpenCardInput, onUpdatePlayerStatus, onRemovePlayer, onUpdateStack, onRotateDealer, onUndo, hasUndo
 }) => {
   const numPlayers = gameState.players.length;
 

@@ -3,6 +3,8 @@ import MainLayout from '../../layouts/MainLayout.astro';
 import { TheoryPage } from '../../components/theory/TheoryPage';
 import { theoryData } from '../../components/theory/data';
 
+export const prerender = true;
+
 export async function getStaticPaths() {
   const paths = theoryData.parts.flatMap(part => 
     part.chapters.map(chapter => ({
@@ -13,7 +15,6 @@ export async function getStaticPaths() {
   return paths;
 }
 
-const { id } = Astro.params;
 const { chapterId, title } = Astro.props;
 ---
 

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { XCircle, Target, Shield, Coins, Wallet, Plus, ChevronDown, UserMinus, UserPlus } from 'lucide-react';
+import { XCircle, Coins, Wallet, Shield } from 'lucide-react';
 import type { GameState, ActionType, PlayerStatus } from '../lib/api';
-import { CardComponent } from './CardComponent';
 import { VirtualTable } from './VirtualTable';
 
 interface ActionTrackerProps {

@@ -13,13 +13,14 @@ import os
 setup_logging()
 logger = get_logger(__name__)
 
-app = FastAPI(title="PokerSense AI API")
+app = FastAPI(title="PokerSense AI API", version="1.0.0")
 
 # Add Correlation ID Middleware
 app.add_middleware(CorrelationIdMiddleware)
 
 @app.on_event("startup")
 def on_startup():
+    logger.info(f"Starting PokerSense API in {os.getenv('ENVIRONMENT', 'production')} mode")
     # Create tables
     try:
         Base.metadata.create_all(bind=engine)
@@ -107,6 +108,11 @@ for origin in dev_origins:
 # If "*" is in origins, we must set allow_credentials=False
 allow_all = "*" in origins
 if allow_all:
+    environment = os.getenv("ENVIRONMENT", "development")
+    if environment == "production":
+        logger.error("SECURITY: Wildcard CORS origin '*' is not allowed in production. Refusing to start.")
+        raise RuntimeError("CORS misconfiguration: wildcard origin '*' rejected in production environment.")
+    logger.warning("SECURITY: CORS configured with wildcard origin '*' — only use for development.")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -118,8 +124,8 @@ else:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        # Allow Vercel preview deployments
-        allow_origin_regex=r"https://.*\.vercel\.app",
+        # Allow Vercel preview deployments securely (only for this project)
+        allow_origin_regex=r"https://poker-ai-black(?:-[a-zA-Z0-9-]+)?\.vercel\.app",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*", "X-User-Id"],
@@ -128,7 +134,24 @@ else:
 # Health check endpoint for deployment
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "version": app.version,
+        "environment": os.getenv("ENVIRONMENT", "production")
+    }
+
+@app.get("/api/v1/version")
+def version_check():
+    import subprocess
+    commit_hash = "unknown"
+    try:
+        commit_hash = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode("utf-8").strip()
+    except Exception:
+        pass
+    return {
+        "version": app.version,
+        "commit": commit_hash
+    }
 
 app.include_router(game_router, prefix="/api/v1/game", tags=["game"])
 app.include_router(ai_router, prefix="/api/v1/ai", tags=["ai"])

@@ -4,9 +4,7 @@ import {
   Target,
   TrendingUp,
   BrainCircuit,
-  Shield,
   Eye,
-  Wallet,
   Users,
   AlertTriangle,
   ChevronRight,
@@ -16,25 +14,16 @@ import {
   Activity,
   BarChart3,
   Clock,
-  Crosshair,
   Lightbulb,
   Gauge,
   WalletCards,
   MousePointerClick,
-  CircleDollarSign,
   FlaskConical,
-  Workflow,
-  Info,
   TrendingDown,
-  Minus,
-  Plus,
-  AlertCircle,
-  HelpCircle,
   ArrowRight,
   Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tooltip } from './Tooltip';
 
 const SECTION_TABS = [
   { id: 'quickstart', label: 'Quick Start', icon: Zap },

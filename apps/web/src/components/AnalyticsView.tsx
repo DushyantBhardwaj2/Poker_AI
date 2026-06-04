@@ -37,7 +37,7 @@ export const AnalyticsView: React.FC = () => {
         setHistory(handHistory);
 
         // Fetch analytics for the most recent session
-        const sessionAnalytics = await getSessionAnalytics(''); // empty string triggers most recent in backend
+        const sessionAnalytics = await getSessionAnalytics(); // undefined triggers most recent in backend
         setAnalytics(sessionAnalytics);
       } catch (err: any) {
         console.error("Failed to fetch analytics:", err);

@@ -1,12 +1,15 @@
 import { create } from 'zustand';
-import type { GameState, Player, ActionType, GameRound, Card } from '../lib/api';
+import type { GameState, Player, ActionType, GameRound, Card, ActionRecord } from '../lib/api';
+
+type PokerSnapshot = GameState & { actionHistory: ActionRecord[] };
 
 interface PokerStore extends GameState {
   // Metadata
   sessionId: string | null;
   isProcessing: boolean;
   error: string | null;
-  undoStack: GameState[];
+  undoStack: PokerSnapshot[];
+  actionHistory: ActionRecord[];
 
   // Phase 5: Mode transition
   viewMode: 'strategic' | 'tactical';
@@ -14,6 +17,7 @@ interface PokerStore extends GameState {
 
   // Actions
   setSession: (id: string) => void;
+  recordAction: (record: ActionRecord) => void;
   setPlayers: (players: Player[]) => void;
   updatePlayerAction: (name: string, action: ActionType, amount?: number) => void;
   advanceStreet: (street: GameRound, cards?: Card[]) => void;
@@ -56,6 +60,7 @@ const initialState = {
   isProcessing: false,
   error: null,
   undoStack: [],
+  actionHistory: [],
 
   // Phase 5: Mode transition
   viewMode: 'strategic' as const,
@@ -80,6 +85,7 @@ export const usePokerStore = create<PokerStore>((set, get) => ({
       round: state.round,
       small_blind: state.small_blind,
       big_blind: state.big_blind,
+      actionHistory: JSON.parse(JSON.stringify(state.actionHistory)),
     }].slice(-10);
     
     set({ undoStack: newStack });
@@ -98,11 +104,16 @@ export const usePokerStore = create<PokerStore>((set, get) => ({
             round: state.round,
             small_blind: state.small_blind,
             big_blind: state.big_blind,
-            sessionId: state.sessionId
+            sessionId: state.sessionId,
+            actionHistory: state.actionHistory
         };
         localStorage.setItem('poker_session_backup', JSON.stringify(persistState));
     }
   },
+
+  recordAction: (record) => set((state) => ({
+    actionHistory: [...state.actionHistory, record]
+  })),
 
   undoAction: () => set((state) => {
     if (state.undoStack.length === 0) return state;
