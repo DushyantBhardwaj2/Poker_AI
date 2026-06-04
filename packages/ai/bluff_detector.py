@@ -17,10 +17,9 @@ class BluffDetector:
     def __init__(self, model_path: Optional[str] = None):
         if model_path is None:
             # Resolve default path relative to this file
-            # packages/ai/bluff_detector.py -> packages/ai -> packages -> root
+            # packages/ai/bluff_detector.py -> packages/ai/models
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(os.path.dirname(current_dir))
-            model_path = os.path.join(project_root, "ml_modules", "src", "models", "bluff_detector_showdown_v3.joblib")
+            model_path = os.path.join(current_dir, "models", "bluff_detector_showdown_v3.joblib")
 
         logger.info(f"Loading ML model from: {model_path}")
         if not os.path.exists(model_path):
