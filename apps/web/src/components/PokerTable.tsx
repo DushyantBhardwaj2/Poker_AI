@@ -22,8 +22,10 @@ import { ActionTracker } from './ActionTracker';
 import { AIDashboard } from './AIDashboard';
 import { ShowdownLogicView } from './ShowdownLogicView';
 import { HandSetupView } from './HandSetupView';
+import { ShowdownLoadingView } from './ShowdownLoadingView';
+import { ShowdownResultScreen } from './ShowdownResultScreen';
 
-type GameView = 'setup' | 'cards' | 'tracker' | 'hand-setup';
+type GameView = 'setup' | 'cards' | 'tracker' | 'hand-setup' | 'evaluating-hand' | 'showdown-result';
 
 export default function PokerTable() {
   const store = usePokerStore();
@@ -393,6 +395,7 @@ export default function PokerTable() {
 
   const handleShowdown = async (playerHands: { playerIndex: number; cards: Card[] }[], blufferNames: string[] = []) => {
     store.setProcessing(true);
+    setGameView('evaluating-hand');
     try {
       const stateWithReveals = {
         players: store.players.map((p, i) => {
@@ -500,6 +503,7 @@ export default function PokerTable() {
       });
 
       setPickingWinner(false);
+      setGameView('showdown-result');
       fetchStats();
     } catch (err: any) {
       store.setError("Failed to finalize hand: " + err.message);
@@ -628,7 +632,7 @@ export default function PokerTable() {
             )
           )}
 
-          {gameView === 'tracker' && store.players.length > 0 && (
+          {(gameView === 'tracker' || gameView === 'evaluating-hand' || gameView === 'showdown-result') && store.players.length > 0 && (
             <div className="w-full flex flex-col xl:flex-row gap-4">
               {/* Left Sidebar - AI Advisor */}
               <div className="xl:w-72 flex-shrink-0 order-2 xl:order-1">
@@ -643,8 +647,21 @@ export default function PokerTable() {
                 />
               </div>
               {/* Center - Table + Action Bar */}
-              <div className="flex-1 order-1 xl:order-2">
-                <ActionTracker
+              <div className="flex-1 order-1 xl:order-2 flex flex-col">
+                {gameView === 'evaluating-hand' && <ShowdownLoadingView />}
+                {gameView === 'showdown-result' && (
+                  <ShowdownResultScreen 
+                    showdownResult={showdownResult}
+                    players={store.players}
+                    communityCards={store.community_cards}
+                    onNextHand={() => {
+                      setShowdownResult(null);
+                      setGameView('hand-setup');
+                    }}
+                  />
+                )}
+                {gameView === 'tracker' && (
+                  <ActionTracker
                   gameState={store as unknown as GameState}
                   onAction={handleAction}
                   onRefillStack={store.updatePlayerStack}
