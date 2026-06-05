@@ -12,6 +12,8 @@ I built **PokerSense ML**, a behavioral intelligence engine designed to detect b
 ## 2. Technical Architecture (Data Pipeline)
 The engine is built as a modular pipeline to ensure reproducibility and handle massive datasets (scaling from 18k to 5.8M records).
 
+![Making of the PokerSense ML Model](../making_of_ml_model.png)
+
 1.  **Ingestion:** Recursive discovery of `.phh` and `.phhs` files. Filters for NLHE (`variant == "NT"`).
 2.  **Profiling:** Aggregates lifetime statistics (VPIP, PFR, Aggression Factor) for every unique player identity across the entire dataset.
 3.  **Feature Engineering:** Transforms raw action sequences into 25+ behavioral and narrative features.

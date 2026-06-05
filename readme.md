@@ -131,6 +131,16 @@ uvicorn application.main:app --reload
 
 ## 🤖 AI Engine Deep Dive
 
+Here is the high-level architecture and processing workflow of the PokerSense AI model pipeline:
+
+### 1. ML Model Architecture & Decision Workflow
+![ML Model Architecture](ml_model_architecture.png)
+
+### 2. Making of the PokerSense ML Model (Pipeline Workflow)
+![Making of the PokerSense ML Model](making_of_ml_model.png)
+
+---
+
 ### Mathematical Layer
 - **Monte Carlo Simulations**: 10,000 iterations for accurate equity
 - **Pot Odds**: Automatic calculation vs. hand equity

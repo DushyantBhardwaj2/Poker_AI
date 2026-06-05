@@ -105,7 +105,7 @@ The bluff probability is synthesized with Sklansky's Theory of Poker:
 ## 3. Visual Concept Art: How the Model Works
 Here is a high-tech infographic showing how the inputs, ML model, and EV math converge to make a decision:
 
-![ML Model Workflow](C:/Users/Dushy/.gemini/antigravity-ide/brain/35fc43f0-606c-4906-9dbf-114c6eecd8e0/ml_model_workflow_1780606709281.png)
+![ML Model Workflow](../ml_model_architecture.png)
 
 ---
 
