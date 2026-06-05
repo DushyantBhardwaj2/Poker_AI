@@ -16,4 +16,4 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: PORT
-        value: 8000
+        value: 10000

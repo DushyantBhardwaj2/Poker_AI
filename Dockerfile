@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose the port FastAPI will run on
-EXPOSE 8000
+EXPOSE 10000
 
 # Start command with PORT variable support for Render
-CMD ["sh", "-c", "uvicorn apps.api.interfaces.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "uvicorn apps.api.interfaces.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
