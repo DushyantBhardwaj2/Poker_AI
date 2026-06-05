@@ -678,6 +678,7 @@ export default function PokerTable() {
                   onUndo={store.undoAction}
                   hasUndo={store.undoStack.length > 0}
                 />
+                )}
               </div>
             </div>
           )}
