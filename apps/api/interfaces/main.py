@@ -133,8 +133,8 @@ else:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        # Allow Vercel preview deployments securely (only for this project)
-        allow_origin_regex=r"https://poker-ai-black(?:-[a-zA-Z0-9-]+)?\.vercel\.app",
+        # Allow Vercel preview and production deployments for this project
+        allow_origin_regex=r"https://(?:poker-ai|web)[a-zA-Z0-9-]*\.vercel\.app",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*", "X-User-Id"],
