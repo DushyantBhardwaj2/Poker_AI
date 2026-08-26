@@ -3,19 +3,10 @@ import MainLayout from '../../layouts/MainLayout.astro';
 import { TheoryPage } from '../../components/theory/TheoryPage';
 import { theoryData } from '../../components/theory/data';
 
-export const prerender = true;
-
-export async function getStaticPaths() {
-  const paths = theoryData.parts.flatMap(part => 
-    part.chapters.map(chapter => ({
-      params: { id: chapter.id },
-      props: { chapterId: chapter.id, title: chapter.title }
-    }))
-  );
-  return paths;
-}
-
-const { chapterId, title } = Astro.props;
+const { id } = Astro.params;
+const chapter = theoryData.parts.flatMap(p => p.chapters).find(c => c.id === id) || theoryData.parts[0].chapters[0];
+const title = chapter.title;
+const chapterId = chapter.id;
 ---
 
 <MainLayout title={`${title} | Theory Mastery Course | PokerSense AI`}>

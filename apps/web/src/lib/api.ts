@@ -233,7 +233,7 @@ const getBaseUrl = () => {
   if (envUrl) {
     return envUrl.replace(/\/+$/, '');
   }
-  
+
   // 2. Browser-aware fallback
   if (typeof window !== 'undefined') {
     // We prefer relative paths in the browser to leverage Vite proxy and avoid CORS
@@ -249,7 +249,7 @@ const API_URL = getBaseUrl();
 
 export const wakeupBackend = () => {
   if (typeof window === 'undefined') return;
-  
+
   // Fire and forget warmup request
   const healthUrl = API_URL.replace('/api/v1', '/health');
   fetch(healthUrl, { mode: 'no-cors' })
@@ -266,7 +266,7 @@ import { getSessionToken } from './auth';
  */
 const getHeaders = async () => {
   const isBrowser = typeof window !== 'undefined';
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -445,44 +445,44 @@ export async function resetSessionStats(): Promise<{ status: string }> {
 // --- Session-based API (Object-style for compatibility) ---
 
 export const PokerAPI = {
-  startSession: async () => 
+  startSession: async () =>
     fetch(`${API_URL}/game/session/start`, { method: 'POST', headers: await getHeaders() }).then(handleResponse),
-  
+
   addPlayer: async (sessionId: string, playerName: string, stack: number) =>
     fetch(`${API_URL}/game/session/add_player`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ session_id: sessionId, player_name: playerName, stack })
     }).then(handleResponse),
-    
+
   recordAction: async (sessionId: string, playerName: string, actionType: string, amount: number) =>
     fetch(`${API_URL}/game/session/record_action`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ session_id: sessionId, player_name: playerName, action_type: actionType, amount })
     }).then(handleResponse),
-    
+
   nextStreet: async (sessionId: string, nextStreet: string) =>
     fetch(`${API_URL}/game/session/next_street`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ session_id: sessionId, next_street: nextStreet })
     }).then(handleResponse),
-    
+
   showdown: async (sessionId: string, payload: any) =>
     fetch(`${API_URL}/game/session/showdown`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ session_id: sessionId, ...payload })
     }).then(handleResponse),
-  
-  analyzeFull: async (payload: any) => 
+
+  analyzeFull: async (payload: any) =>
     fetch(`${API_URL}/ai/analyze-full`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(payload)
     }).then(handleResponse),
-  
+
   getStats: async () =>
     fetch(`${API_URL}/stats/`, { method: 'GET', headers: await getHeaders() }).then(handleResponse)
 };
@@ -545,10 +545,10 @@ export async function getSessionAnalytics(sessionId?: string): Promise<SessionAn
   if (sessionId === '') {
     throw new Error("Invalid session ID: Cannot be an empty string");
   }
-  const url = sessionId 
+  const url = sessionId
     ? `${API_URL}/stats/session/${sessionId}/analytics`
     : `${API_URL}/stats/session/latest/analytics`;
-  
+
   const res = await fetch(url, {
     method: 'GET',
     headers: await getHeaders(),
