@@ -12,6 +12,8 @@ env/
 env.bak/
 .env
 .env.*
+# ...but the template has to be committed, or nobody knows what to put in .env.
+!.env.example
 
 # Python packaging
 dist/
@@ -97,6 +99,3 @@ ml_modules/poker-hand-histories/
 ml_modules/poker-hand-histories.zip
 ml_modules/temp_test.py
 ml_modules/sample_file_list.txt
-
-.gemini/
-gha-creds-*.json

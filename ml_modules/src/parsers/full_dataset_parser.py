@@ -14,7 +14,18 @@ import logging
 from pathlib import Path
 import pandas as pd
 import time
-from data_loader import PHHParser
+import os
+import sys
+
+# Absolute imports, plus the sys.path preamble that makes them work when this
+# file is run directly. `from data_loader import PHHParser` only resolved because
+# Python puts a script's own directory on sys.path, so it worked as a script and
+# raised ModuleNotFoundError the moment anything imported it.
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+from src.parsers.data_loader import PHHParser
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

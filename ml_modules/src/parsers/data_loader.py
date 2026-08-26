@@ -119,23 +119,67 @@ class PHHParser:
                     except Exception: pass
         return hole_cards
 
+    # Codes that represent a player putting money in voluntarily and for value or
+    # as a bluff. PHH spells all three as 'cbr' (complete, bet, or raise); 'cc'
+    # is check/call, 'f' is fold, 'sm' is show/muck. Dealer actions ('d dh',
+    # 'd db') are excluded structurally, because the actor has to be a 'pN' token.
+    AGGRESSIVE_CODES = frozenset({'cbr'})
+
+    @staticmethod
+    def _actor_index_from_action(token: str, player_count: int) -> Optional[int]:
+        """Resolve the 'p4' in 'p4 cbr 170000' to an index into hand.players.
+
+        The action string is the authority on who acted. See
+        _extract_street_actions for why this is not taken from the state.
+        """
+        if not token.startswith('p'):
+            return None
+        try:
+            index = int(token[1:]) - 1
+        except ValueError:
+            return None
+        return index if 0 <= index < player_count else None
+
     def _extract_street_actions(self, hand, players, starting_stacks) -> List[Dict[str, Any]]:
+        """Pull out every bet and raise, with the pot it was facing.
+
+        pokerkit pairs each action with the state *after* that action has been
+        applied, so two things that look available on the state are not:
+
+        `state.actor_index` is whoever is due to act next, not the player who
+        made this action. Attributing by it shifted every aggressive action onto
+        the following player, and because hole cards are joined back on
+        player_id, it also handed each bet the wrong player's cards. In the
+        five-handed example hand used by scripts/inspect_dataset.py, four river
+        and turn barrels made by a player holding 6d5h on JcTs2dAsQs (a stone
+        bluff) were recorded against the player holding Js8h (top pair). The
+        showdown labels are derived from exactly that pairing, so the mistake did
+        not just add noise, it inverted the thing the model is trying to learn.
+
+        `state.pots` only counts chips already gathered into the pot. Money still
+        sitting in front of players lives in `state.bets` until the street
+        closes, so on any street with outstanding action - every 3-bet, every
+        raise facing a bet - the collected total understates what the aggressor
+        was actually pricing against. Reconstructing it needs the bets too,
+        minus this action's own contribution, since the state already includes it.
+        """
         actions = []
         try:
-            for _, (state, action) in enumerate(hand.state_actions):
-                if state is None or state.actor_index is None or action is None:
+            for state, action in hand.state_actions:
+                if state is None or action is None:
                     continue
-                action_str = str(action).strip()
-                parts = action_str.split()
-                if len(parts) < 2: continue
-                code = parts[1].lower()
-                if not ('b' in code or 'r' in code): continue
-                
-                actor_index = state.actor_index
-                street_index = state.street_index
-                current_pot = sum(p.amount for p in state.pots) if state.pots else 0
-                board_cards = [str(card) for card in state.board_cards] if state.board_cards else []
-                
+                parts = str(action).strip().split()
+                if len(parts) < 3:
+                    continue
+                if parts[1].lower() not in self.AGGRESSIVE_CODES:
+                    continue
+
+                actor_index = self._actor_index_from_action(parts[0], len(players))
+                if actor_index is None:
+                    continue
+                if state.street_index is None:
+                    continue
+
                 # Parse amount
                 bet_amount = 0.0
                 for token in reversed(parts[2:]):
@@ -143,13 +187,23 @@ class PHHParser:
                         bet_amount = float(token)
                         break
                     except Exception: continue
-                
+
                 if bet_amount <= 0: continue
-                
+
+                collected = sum(p.amount for p in state.pots) if state.pots else 0
+                outstanding = sum(state.bets) if getattr(state, 'bets', None) else 0
+                # bet_amount is the total this player is in for on this street, and
+                # it is already inside `outstanding`, so remove it to get the pot as
+                # the player saw it. Clamped because a malformed amount should not
+                # produce a negative pot.
+                pot_before = max(0.0, float(collected + outstanding) - bet_amount)
+
+                board_cards = [str(card) for card in state.board_cards] if state.board_cards else []
+
                 actions.append({
                     'player_id': players[actor_index],
-                    'street': int(street_index),
-                    'pot_before': float(current_pot),
+                    'street': int(state.street_index),
+                    'pot_before': pot_before,
                     'bet_amount': float(bet_amount),
                     'board_cards': board_cards,
                     'starting_stack': float(starting_stacks[actor_index]) if actor_index < len(starting_stacks) else 0.0

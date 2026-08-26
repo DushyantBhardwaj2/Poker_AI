@@ -1,6 +1,10 @@
 import uuid
 from typing import Optional, Dict, List
-from datetime import datetime
+# timezone is imported because every DateTime column in db_models is declared
+# timezone=True, and the utcnow() these calls used to use returns a naive value.
+# Postgres reads a naive datetime for a timestamptz column as local time, so on
+# any server not set to UTC the stored timestamp was silently offset.
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from .db_models import (
@@ -181,7 +185,7 @@ class StatsRepository:
             self.db.refresh(opponent)
 
         # Update last seen
-        opponent.last_seen = datetime.utcnow()
+        opponent.last_seen = datetime.now(timezone.utc)
         self.db.commit()
 
         return opponent
@@ -312,7 +316,7 @@ class StatsRepository:
         # Assign back to trigger SQLAlchemy detection
         stats.dynamic_features = features
         stats.session_features = session_features
-        stats.last_hand_timestamp = datetime.utcnow()
+        stats.last_hand_timestamp = datetime.now(timezone.utc)
 
         self.db.commit()
         self.db.refresh(stats)
@@ -782,7 +786,7 @@ class StatsRepository:
         ).first()
 
         if session:
-            session.ended_at = datetime.utcnow()
+            session.ended_at = datetime.now(timezone.utc)
             self.db.commit()
             return True
         return False

@@ -17,8 +17,11 @@ import pandas as pd
 from datetime import datetime
 import time
 
-# Import the parser from data_loader
-from src.parsers.data_loader import PHHParser, load_phh_files
+# Import the parser from data_loader. `load_phh_files` used to be imported
+# alongside it; the function was deleted from data_loader and nothing here ever
+# called it, so the only thing the import still did was raise ImportError and
+# make this module impossible to load.
+from src.parsers.data_loader import PHHParser
 from src.utils.config_loader import load_config, get_data_path
 
 logging.basicConfig(

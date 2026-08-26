@@ -8,7 +8,7 @@ export const theoryData: TheoryData = {
         {
           id: "chapter-1",
           title: "Chapter 1: Beyond Beginning Poker",
-          overview: "At its core, poker appears to be a simple game of luck and chance. Anyone can learn the basic rules in minutes, which creates a deceptive veneer of simplicity. However, professional poker is entirely about skill—specifically, the skill of minimizing losses on bad hands and maximizing profits on good hands. It is a game where you are constantly at war with luck. The true object of poker is not to win individual pots, but to make money by consistently making decisions with positive mathematical expectation over the long run.",
+          overview: "At its core, poker appears to be a simple game of luck and chance. Anyone can learn the basic rules in minutes, which creates a deceptive veneer of simplicity. However, professional poker is entirely about skill, specifically the skill of minimizing losses on bad hands and maximizing profits on good hands. It is a game where you are constantly at war with luck. The true object of poker is not to win individual pots, but to make money by consistently making decisions with positive mathematical expectation over the long run.",
           keyIdeas: [
             "**Poker is a Game of Skill:** Expert players do not rely on luck. They use skill to mitigate bad luck and capitalize on good luck.",
             "**The Object is Making Money:** Your goal is not to win the most pots, but to maximize profits and minimize losses.",
@@ -50,7 +50,7 @@ export const theoryData: TheoryData = {
         {
           id: "chapter-2",
           title: "Chapter 2: Expectation and Hourly Rate",
-          overview: "Mathematical expectation is the foundation of all gambling, including poker. It defines the amount a bet will average winning or losing over time. In poker, every decision—whether to fold, call, or raise—should be evaluated based on its mathematical expectation. The sum of all your expectations forms your hourly rate. Professional players focus exclusively on making plays with a positive expectation (+EV) and avoiding those with a negative expectation (-EV).",
+          overview: "Mathematical expectation is the foundation of all gambling, including poker. It defines the amount a bet will average winning or losing over time. In poker, every decision, whether to fold, call, or raise, should be evaluated based on its mathematical expectation. The sum of all your expectations forms your hourly rate. Professional players focus exclusively on making plays with a positive expectation (+EV) and avoiding those with a negative expectation (-EV).",
           keyIdeas: [
             "**Mathematical Expectation (+EV / -EV):** The average amount you stand to win or lose per bet.",
             "**Hourly Rate:** The amount of money you expect to win per hour, calculated by summing the expectations of your plays.",
@@ -97,7 +97,7 @@ export const theoryData: TheoryData = {
             "**The Goal of Deception:** You use deception (bluffing, slowplaying) to induce opponents into making Fundamental Theorem mistakes.",
             "**Multi-Way Pot Exception:** Sometimes you want one opponent to play correctly if it helps drive out a third opponent whose draw threatens you."
           ],
-          detailedExplanation: "If poker were played with all cards exposed, it would be a purely mathematical exercise. The art of poker lies in dealing with the unknown. According to the theorem, you profit when opponents act incorrectly based on what you hold.\n\nImagine you bet with a strong hand and your opponent calls with a draw. If the pot is huge, their call might be mathematically justified. In this case, because they are playing correctly, you do not gain anything long-term—you only gain when they fold incorrectly. You are constantly trying to create situations where opponents either call when they don't have the odds, or fold when they do have the odds.",
+          detailedExplanation: "If poker were played with all cards exposed, it would be a purely mathematical exercise. The art of poker lies in dealing with the unknown. According to the theorem, you profit when opponents act incorrectly based on what you hold.\n\nImagine you bet with a strong hand and your opponent calls with a draw. If the pot is huge, their call might be mathematically justified. In this case, because they are playing correctly, you do not gain anything long-term; you only gain when they fold incorrectly. You are constantly trying to create situations where opponents either call when they don't have the odds, or fold when they do have the odds.",
           caseStudies: [
             {
               title: "Case Study 1: Profiting from an Incorrect Call",
@@ -129,7 +129,7 @@ export const theoryData: TheoryData = {
         {
           id: "chapter-4",
           title: "Chapter 4: The Ante Structure",
-          overview: "Every hand of poker begins as a struggle for the initial money in the pot—the antes or the blinds. Without this forced money, there would be no reason to play anything but absolute premium hands. The size of the ante relative to the future betting limits is the single most important factor in determining your baseline strategy. It dictates how loose or tight you should play.",
+          overview: "Every hand of poker begins as a struggle for the initial money in the pot: the antes or the blinds. Without this forced money, there would be no reason to play anything but absolute premium hands. The size of the ante relative to the future betting limits is the single most important factor in determining your baseline strategy. It dictates how loose or tight you should play.",
           keyIdeas: [
             "**The Struggle for Antes:** All future action stems from the initial battle for the dead money.",
             "**The Golden Rule of Antes:** The lower the ante in comparison to future bets, the tighter you play. The higher the ante, the looser you play.",
@@ -291,7 +291,7 @@ export const theoryData: TheoryData = {
         {
           id: "chapter-8",
           title: "Chapter 8: The Value of Deception",
-          overview: "If you always play your hand straightforwardly, your strategy becomes transparent. Deception—bluffing, semi-bluffing, or slowplaying—is the deliberate act of disguising your strength to force opponents into making Fundamental Theorem mistakes. You must weigh the cost of being outdrawn or caught against the benefit of a massive future payoff.",
+          overview: "If you always play your hand straightforwardly, your strategy becomes transparent. Deception, whether by bluffing, semi-bluffing, or slowplaying, is the deliberate act of disguising your strength to force opponents into making Fundamental Theorem mistakes. You must weigh the cost of being outdrawn or caught against the benefit of a massive future payoff.",
           keyIdeas: [
             "**Cost of Predictability:** Straightforward play allows observant opponents to play perfectly against you.",
             "**Opponent Skill:** Deception is for 'super readers', not 'calling stations' who don't notice what you do.",

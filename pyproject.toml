@@ -2,11 +2,30 @@
 name = "poker-ai"
 version = "0.1.0"
 description = "Clean Architecture Poker AI"
+requires-python = ">=3.11"
+# Runtime dependencies are pinned in requirements.txt, which is what the
+# Dockerfile installs. Keep the versions here in sync with that file.
 dependencies = [
-    "fastapi",
-    "uvicorn",
-    "pydantic",
+    "fastapi==0.135.1",
+    "uvicorn==0.41.0",
+    "pydantic==2.10.3",
 ]
 
 [tool.setuptools]
 packages = ["apps", "packages"]
+
+[tool.pytest.ini_options]
+# The API imports itself absolutely (`apps.api...`, `packages...`), so the
+# repository root has to be on sys.path. Every test file used to open with
+# `sys.path.append(os.getcwd())` to arrange that, which quietly made the suite
+# depend on being invoked from the root and on nothing else.
+#
+# `ml_modules` is on the path as well so the training-side parser is testable
+# from the same suite. It imports itself as `src.*`, which is why it needs its
+# own root rather than being reachable as `ml_modules.src.*`.
+pythonpath = [".", "ml_modules"]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "integration: exercises the API or the database end to end, not a single unit",
+]

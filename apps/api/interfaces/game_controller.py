@@ -226,7 +226,7 @@ async def stateless_start_game(request: StatelessStartGameRequest, user_id: uuid
         request.sb_index,
         request.bb_index
     )
-    return state.dict()
+    return state.model_dump()
 
 class StatelessProcessActionRequest(BaseModel):
     state: GameState
@@ -237,7 +237,7 @@ async def stateless_process_action(request: StatelessProcessActionRequest):
     use_case = ProcessActionUseCase()
     try:
         new_state = use_case.execute(request.state, request.action)
-        return new_state.dict()
+        return new_state.model_dump()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -251,8 +251,8 @@ async def stateless_showdown(request: StatelessShowdownRequest, user_id: uuid.UU
         use_case = ShowdownUseCase()
         new_state, result = use_case.execute(request.state)
 
-        # Return showdown result immediately — stats update is async
-        return {"new_state": new_state.dict(), "result": result}
+        # Return showdown result immediately; stats update is async
+        return {"new_state": new_state.model_dump(), "result": result}
     except Exception as e:
         logger.error("Error in showdown", error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -263,7 +263,7 @@ async def stateless_showdown(request: StatelessShowdownRequest, user_id: uuid.UU
 
 
 def _update_showdown_stats(request: StatelessShowdownRequest, result: dict, user_id: uuid.UUID):
-    """Best-effort stats update after showdown — failures are logged, never crash the player experience."""
+    """Best-effort stats update after showdown. Failures are logged, never crash the player experience."""
     try:
         from packages.domain.database import SessionLocal
         from packages.domain.stats_repository import StatsRepository

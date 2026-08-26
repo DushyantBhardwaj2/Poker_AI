@@ -8,17 +8,28 @@ class WinProbabilityCalculator:
     # Pre-calculated order of starting hand strengths (approximate)
     # Pairs, then high-low suited, then high-low offsuit
     HAND_STRENGTH_ORDER = [
-        "AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "AKs", "AQs", "AJs", "AKo", 
-        "66", "ATs", "AQo", "KQs", "55", "AJo", "KJs", "44", "ATo", "QJs", "33", 
-        "KJo", "22", "KTs", "QTs", "JTs", "A9s", "A8s", "A7s", "A6s", "A5s", "A4s", 
+        "AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "AKs", "AQs", "AJs", "AKo",
+        "66", "ATs", "AQo", "KQs", "55", "AJo", "KJs", "44", "ATo", "QJs", "33",
+        "KJo", "22", "KTs", "QTs", "JTs", "A9s", "A8s", "A7s", "A6s", "A5s", "A4s",
         "A3s", "A2s", "K9s", "Q9s", "J9s", "T9s", "A9o", "KTo", "QTo", "JTo"
     ]
 
+    # A simulation costs about 0.25ms, so this ceiling is roughly 2.5 seconds of
+    # CPU. /win-probability is unauthenticated, and without a ceiling one request
+    # asking for ten million rollouts occupies the whole container for an hour.
+    MAX_SIMULATIONS = 10_000
+
+    # 2 hole cards + 5 board + 2 per opponent has to fit in 52, and a table with
+    # more than ten seats is not a poker table. Past that the deck runs out
+    # mid-deal and the opponents share cards, which produced a plausible-looking
+    # number rather than an error.
+    MAX_OPPONENTS = 9
+
     @staticmethod
     def calculate(
-        hole_cards: List[Card], 
-        community_cards: List[Card], 
-        num_opponents: int, 
+        hole_cards: List[Card],
+        community_cards: List[Card],
+        num_opponents: int,
         num_simulations: int = 1000,
         opponent_vpip: float = 1.0
     ) -> Dict[str, float]:
@@ -27,13 +38,30 @@ class WinProbabilityCalculator:
         """
         if len(hole_cards) != 2:
             raise ValueError("Must provide exactly 2 hole cards")
-            
+
+        # Validated here rather than only at the API boundary, because the failures
+        # are silent. A negative count makes range() empty, so every rate divides
+        # 0 by a negative number and the caller gets win_probability: -0.0 with no
+        # indication anything went wrong. Zero divides by zero.
+        if not isinstance(num_simulations, int) or isinstance(num_simulations, bool):
+            raise ValueError("num_simulations must be an integer")
+        if not 1 <= num_simulations <= WinProbabilityCalculator.MAX_SIMULATIONS:
+            raise ValueError(
+                f"num_simulations must be between 1 and "
+                f"{WinProbabilityCalculator.MAX_SIMULATIONS}, got {num_simulations}"
+            )
+        if not 1 <= num_opponents <= WinProbabilityCalculator.MAX_OPPONENTS:
+            raise ValueError(
+                f"num_opponents must be between 1 and "
+                f"{WinProbabilityCalculator.MAX_OPPONENTS}, got {num_opponents}"
+            )
+
         wins = 0
         ties = 0
         losses = 0
-        
+
         known_cards_str = [str(c) for c in hole_cards + community_cards]
-        
+
         # Pre-filter deck for speed
         all_deck = [Card(rank=r, suit=s) for r in Rank for s in Suit]
         base_sim_deck = [c for c in all_deck if str(c) not in known_cards_str]

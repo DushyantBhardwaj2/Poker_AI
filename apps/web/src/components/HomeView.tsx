@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Play, BookOpen, ChevronRight, Target, Brain, UserPlus, TrendingUp, Activity, Zap, Crosshair } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { authClient } from '../lib/auth';
+import { authClient, isAuthEnabled } from '../lib/auth';
 import { AuthProvider } from './AuthProvider';
 
 // Animation settings
@@ -16,7 +16,7 @@ const itemVariants = {
 };
 
 // Floating particle component
-const FloatingParticle = ({ delay, size, left, top }: { delay: number; size: number; left: string; top: string }) => (
+const FloatingParticle = ({ delay, size, left, top, duration }: { delay: number; size: number; left: string; top: string; duration: number }) => (
   <motion.div
     className="absolute rounded-full bg-gold/5 pointer-events-none"
     style={{ width: size, height: size, left, top }}
@@ -26,13 +26,29 @@ const FloatingParticle = ({ delay, size, left, top }: { delay: number; size: num
       scale: [1, 1.1, 1]
     }}
     transition={{
-      duration: 4 + Math.random() * 2,
+      duration,
       delay,
       repeat: Infinity,
       ease: "easeInOut"
     }}
   />
 );
+
+// Hand-picked scatter rather than Math.random(). The page is server-rendered
+// (astro.config.mjs sets output: 'server'), so random values gave the server one
+// set of positions and the client another, and React logged a hydration mismatch
+// on every home page load. It also warns that the mismatch "won't be patched up",
+// meaning the DOM keeps the server's numbers while React believes the client's.
+const PARTICLES = [
+  { id: 0, delay: 0.0, size: 10.5, left: '14%', top: '23%', duration: 5.4 },
+  { id: 1, delay: 0.5, size: 5.5, left: '47%', top: '77%', duration: 4.3 },
+  { id: 2, delay: 1.0, size: 8.0, left: '31%', top: '52%', duration: 5.8 },
+  { id: 3, delay: 1.5, size: 11.5, left: '82%', top: '18%', duration: 4.6 },
+  { id: 4, delay: 2.0, size: 6.5, left: '68%', top: '61%', duration: 5.1 },
+  { id: 5, delay: 2.5, size: 9.0, left: '22%', top: '85%', duration: 4.9 },
+  { id: 6, delay: 3.0, size: 4.5, left: '58%', top: '35%', duration: 5.6 },
+  { id: 7, delay: 3.5, size: 7.5, left: '88%', top: '69%', duration: 4.1 }
+];
 
 // Probability ring visualization
 const ProbabilityRing = () => (
@@ -145,6 +161,10 @@ export const HomeView: React.FC = () => {
   React.useEffect(() => {
     setMounted(true);
 
+    // Every other caller checks this first; this one did not, so an
+    // unconfigured clone fired a doomed request on every home page visit.
+    if (!isAuthEnabled) return;
+
     const fetchSession = async () => {
       try {
         const { data: session } = await authClient.getSession();
@@ -156,17 +176,6 @@ export const HomeView: React.FC = () => {
 
     fetchSession();
   }, []);
-
-  // Memoize particles
-  const particles = useMemo(() => (
-    Array.from({ length: 8 }).map((_, i) => ({
-      id: i,
-      delay: i * 0.5,
-      size: 4 + Math.random() * 8,
-      left: `${10 + Math.random() * 80}%`,
-      top: `${10 + Math.random() * 80}%`
-    }))
-  ), []);
 
   return (
     <AuthProvider>
@@ -185,7 +194,7 @@ export const HomeView: React.FC = () => {
           animate={{ x: [0, 50, 0] }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
         />
-        {particles.map((p) => (
+        {PARTICLES.map((p) => (
           <FloatingParticle key={p.id} {...p} />
         ))}
       </div>

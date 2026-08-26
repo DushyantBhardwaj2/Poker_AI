@@ -1,157 +1,254 @@
-# Project Deep Dive: PokerSense ML — Behavioral Bluff Detection
+# Making of the bluff detector
 
-## 1. Project Overview
-I built **PokerSense ML**, a behavioral intelligence engine designed to detect bluffs in No-Limit Texas Hold'em (NLHE). Unlike traditional poker bots that focus on Game Theory Optimal (GTO) play, this module acts as a "behavioral observer." It identifies when an opponent's betting narrative (the "story" they are telling with their chips) is inconsistent with the mathematical reality of the board texture and their historical tendencies.
+The math half of PokerSense is a solved problem: equity by Monte Carlo, pot odds by
+arithmetic. This document is about the other half, the part that had to be trained,
+and mostly about the mistake I made first.
 
-*   **Objective:** Achieve >70% precision in real-time bluff detection to provide actionable alerts for a human player.
-*   **Final Performance:** 71.1% Precision on the Turn, 93.2% Precision on the River.
-*   **Key Innovation:** Pivoted from weak supervision (heuristic-based) to direct training on 615,000 ground-truth showdown records discovered during dataset scaling.
+![Pipeline](../making_of_ml_model.png)
 
----
+Two things in that diagram describe the design rather than the shipped code: the
+threshold is not street-wise, and the showdown model trains without sample weights.
+See [Limitations](#limitations).
 
-## 2. Technical Architecture (Data Pipeline)
-The engine is built as a modular pipeline to ensure reproducibility and handle massive datasets (scaling from 18k to 5.8M records).
+## The mistake
 
-![Making of the PokerSense ML Model](../making_of_ml_model.png)
+The goal was a model that answers one question at the moment you have to act: is this
+bet a bluff? The obvious problem is labels. A hand history tells you what everyone
+bet, but not what they held, unless it went to showdown.
 
-1.  **Ingestion:** Recursive discovery of `.phh` and `.phhs` files. Filters for NLHE (`variant == "NT"`).
-2.  **Profiling:** Aggregates lifetime statistics (VPIP, PFR, Aggression Factor) for every unique player identity across the entire dataset.
-3.  **Feature Engineering:** Transforms raw action sequences into 25+ behavioral and narrative features.
-4.  **Labeling:**
-    *   *Initial:* Weak Supervision using a "Heuristic Engine" to generate soft labels.
-    *   *Final:* Binary labeling based on revealed showdown cards (Ground Truth).
-5.  **Training:** XGBoost Classifier with custom sample weights and PR-curve calibration.
-6.  **Inference:** Lightweight API delivering a `bluff_probability (%)` and a "Strict Bluff" flag based on street-wise thresholds.
+My first answer was weak supervision. I wrote a heuristic labeler
+([heuristic_labeler_v3.py](src/labeling/heuristic_labeler_v3.py)) that scored each bet
+on the things I believed marked a bluff: big bet, dry board, tight player, a jump in
+aggression from the previous street. It emitted a soft label and a confidence weight,
+and I trained on 18,000 Zenodo records with those weights.
 
----
+It scored respectably and it was worthless. The labels were my own assumptions written
+down, so the model's job was to reproduce my heuristic, and its accuracy measured how
+well it had done that. Where the heuristic was wrong the model was confidently wrong
+in the same direction, and nothing in the metrics could tell me so. The one thing the
+exercise was supposed to provide, an opinion that was not mine, was the one thing it
+structurally could not.
 
-## 3. Features & Engineering Decisions
-I designed features to capture the "narrative" of a poker hand rather than just raw numbers:
+## What fixed it
 
-*   **`rel_bet_size` (Relative Bet Size):** `bet_amount / pot_before`. Normalizes aggression across different pot sizes.
-*   **`bet_spike`:** The delta between the current `rel_bet_size` and the previous street's. A sudden "spike" in aggression often signals a polarized range (strongest hands or total bluffs).
-*   **`dryness` & `dryness_delta`:** Measures board texture. A "dry" board (e.g., 7-2-2) offers few natural draws, making large bets more suspicious (Narrative Mismatch).
-*   **`tightness_bet_interaction`:** Calculated as `(1 - VPIP) * rel_bet_size`. This distinguishes between a "Maniac" (high VPIP) and a "Rock" (low VPIP). A large bet from a "Rock" on a dry board is a much higher signal than from a "Maniac."
-*   **`range_miss`:** A heuristic proxy calculating the probability that a standard opening range failed to connect with the current board texture.
-*   **`is_monotonic`:** Checks if the betting sequence is consistently increasing. Deviations (e.g., small bet, small bet, massive overbet) are flagged as "Narrative Breaks."
+Scaling the ingestion for more data turned up the actual answer. Parsing HandHQ
+`.phhs` files, roughly 5.8M hands, surfaced about 615,000 bets that ended in a
+showdown. Those have real labels. The cards were turned over, so whether the bet was a
+bluff is a fact rather than an opinion.
 
----
+So the labeling strategy changed completely: throw away the heuristic labels, keep only
+showdown rows, and train on ground truth. `train_showdown_model.py` filters to
+`true_label.notna()` and never looks at a heuristic score.
 
-## 4. Problems Faced & Solutions
+The cost is selection bias, and it is worth being explicit about it. Hands that reach a
+showdown are not a random sample of hands. A bluff that works is a bluff you never see,
+so the training set systematically overrepresents bluffs that got called. The model
+learns to recognize the kind of bluff that gets caught. For a tool whose job is to tell
+you when to call, that bias points in a useful direction, but it is a bias and not a
+feature.
 
-### A. The "Hidden" Dataset Scaling Problem
-**Challenge:** Initial training on 18,000 Zenodo records yielded poor results because the heuristic labels were "echoing" my own assumptions rather than learning from data.
-**Solution:** I discovered and integrated the **HandHQ (.phhs)** dataset, scaling the ingestion to **5.8 million records**. This massive scale revealed 615,000 "Showdown" records where the actual cards were known, allowing me to abandon weak supervision in favor of direct ground-truth training.
+## Pipeline
 
-### B. Parser API Volatility
-**Challenge:** The `pokerkit` library underwent an API change where the `.states` attribute was deprecated in favor of a `.state_actions` generator. This broke my entire ingestion pipeline.
-**Solution:** I refactored the `PHHParser` to use a generator-based iterator, significantly reducing memory overhead (critical for processing 5.8M records) and ensuring future-proof compatibility with the library.
+Each stage writes a parquet file and the next stage reads it, so any stage can be rerun
+without redoing the ones before it.
 
-### C. Hand ID Collisions
-**Challenge:** When merging multiple dataset sources (ACPC, WSOP, HandHQ), identical `hand_id` values caused data corruption.
-**Solution:** I implemented a "Source-Aware ID" system that salts the `hand_id` with a hash of the relative file path, ensuring global uniqueness across 10,000+ files.
+| Stage | Code | What it does |
+| --- | --- | --- |
+| Ingest | [`parsers/data_loader.py`](src/parsers/data_loader.py), [`aggressive_parser.py`](src/parsers/aggressive_parser.py) | Walks `.phh`/`.phhs` files, filters to NLHE (`variant == "NT"`), emits one row per betting action |
+| Profile | [`calculate_player_stats_aggressive.py`](src/features/calculate_player_stats_aggressive.py) | Lifetime VPIP, PFR and aggression factor per player identity, in pandas chunks |
+| Features | [`engineer_features_v3.py`](src/features/engineer_features_v3.py) | 27 columns from the raw action rows, 16 of which the model uses |
+| Label | [`heuristic_labeler_v3.py`](src/labeling/heuristic_labeler_v3.py) | The v1 path, kept for comparison. Superseded by showdown labels |
+| Train | [`train_showdown_model.py`](src/models/train_showdown_model.py) | XGBoost on showdown rows, split by player |
+| Serve | [`packages/ai/bluff_detector.py`](../packages/ai/bluff_detector.py) | Recomputes the same 16 features from a live game state |
 
----
+Three ingestion details cost more time than they should have. The first two I hit
+while building it; the third I only found afterwards, writing tests for a parser I
+had assumed was correct.
 
-## 5. How the Model Works (The Logic Layer)
-The engine doesn't just look at a single bet; it evaluates the **Temporal Action Sequence**.
+**`pokerkit` deprecated `.states` in favour of a `.state_actions` generator**, which
+broke the parser outright. Moving to the generator was the fix, and it also dropped
+peak memory enough to make 5.8M rows practical, since the old code materialised every
+state of a hand before touching any of it.
 
-1.  **Input Vectorization:** The system takes the current game state (Pot, Board, Player Stats, Action History) and vectorizes it into a feature row.
-2.  **XGBoost Inference:** We use a tree-based ensemble. The model's "logic" is encoded in thousands of decision paths. For example:
-    *   *Path A:* If `street == River` AND `rel_bet_size > 1.5` AND `board_dryness > 0.8` AND `player_vpip < 0.2` -> **High Bluff Probability**. (This captures a "tight" player trying to buy a pot on a board they likely missed).
-    *   *Path B:* If `dryness_delta` is negative (board got wetter) AND `bet_spike` is low -> **Low Bluff Probability**. (This suggests a player naturally continuing their aggression as the board improved).
-3.  **PR-Curve Gating:** The raw probability is passed through a street-specific threshold. If `P(Bluff) > Threshold_Street`, a "Strict Bluff" flag is raised.
-4.  **Confidence Weighting:** The distance from the threshold determines the confidence level displayed in the UI.
+**Hand ids collided across sources.** ACPC, WSOP and HandHQ all number their hands
+from 1, so merging them silently overwrote rows. `extract_hand_id` now builds the id
+from the file's path relative to the dataset root plus the hand's index within the
+file, which is unique by construction and, unlike a hash, still tells you where a row
+came from when you are debugging one.
 
----
+**The generator hands you the state after the action, not before it**, and I read it
+the other way round. `state.actor_index` therefore names the next player to act, so
+every bet was credited to the wrong player and, through the `player_id` join, given
+the wrong hole cards. `state.pots` likewise holds only chips already gathered, with
+outstanding bets waiting in `state.bets` until the street closes, so the pot the
+bettor was facing was understated whenever there was live action to face. Nothing
+crashed and no row looked odd in isolation, which is why it survived a full training
+run. It took writing an assertion against a hand whose outcome I knew to see it. See
+the first entry under [Limitations](#limitations) for what that means for the model
+in `packages/ai/models/`.
 
-## 6. Results & Performance Metrics
-The model was evaluated against a held-out test set of **123,000 showdown records**.
+## Features
 
-| Metric | Value | Technical Significance |
-| :--- | :--- | :--- |
-| **ROC AUC** | **0.750** | Strong ability to distinguish between bluffs and value bets. |
-| **PR AUC** | **0.620** | High performance in the "imbalanced" class (bluffs are rare). |
-| **Log-Loss** | **0.312** | Predictions are well-calibrated (probabilities represent real frequencies). |
-| **River Precision**| **93.2%** | Only 7% false alarms on the most expensive street. |
-| **Turn Precision** | **71.1%** | Reliable enough for tactical decision-making. |
-| **Inference Latency**| **~12ms** | Suitable for real-time live-tracking environments. |
+Sixteen, and the interesting ones are not the raw measurements.
 
----
+```
+street, rel_bet_size, bet_spike, dryness, dryness_delta, bet_bin,
+vpip, pfr, spr, bet_size_diff, is_monotonic, range_miss,
+dryness_bet_interaction, vpip_bet_interaction, tightness_bet_interaction, agg_profile
+```
 
-## 7. Files Created
-*   `aggressive_parser.py`: High-performance ingestion for .phhs files (processes ~5,000 hands/sec).
-*   `engineer_features_v3.py`: Implementation of narrative interaction terms and SPR.
-*   `calculate_player_stats_aggressive.py`: Distributed statistical aggregation using Pandas chunking.
-*   `generate_mismatch_surface.py`: Dynamic analysis of board-texture/bet-size distributions.
-*   `train_showdown_model.py`: The final training script for the v3 model with PR-optimization.
-*   `inference_api.py`: The production wrapper for the backend with threshold gating.
+**`rel_bet_size`** is `bet_amount / pot_before`. A 500 chip bet means nothing on its
+own; half the pot means something.
 
----
+**`dryness`** scores board texture from pairwise connectedness of the community cards,
+rank gaps and suit repeats, normalised so 1.0 is a rainbow board with no draws and 0.0
+is soaking wet. Computed once per distinct board and mapped, because the same flop
+recurs constantly across 5.8M hands.
 
-## 8. Limitations & Future Work (v4.0)
-*   **Limited Multi-Way Data:** Optimized for "Heads-Up" (1v1) pots. Multi-way dynamics (3+ players) are currently a fallback to a simplified heuristic.
-*   **Temporal Drift:** Doesn't yet account for "Tilt" (a player becoming aggressive after a big loss).
-*   **Future Work:** Implementation of **LSTM (Long Short-Term Memory)** networks to capture the exact order and timing of actions (seconds-to-act), which is a massive tell in online poker.
+**`dryness_delta`** is the change since the previous street, and it turned out to
+matter more than `dryness` itself. A board getting wetter changes what a continued bet
+means; a board getting drier changes it the other way.
 
----
+**`bet_spike`** is this bet over the largest bet on the previous street. Polarised
+ranges spike.
 
-## 9. Deep Interview Prep (Mastering the "Why")
+**`tightness_bet_interaction`** is `(1 - vpip) * rel_bet_size`. This is the feature I
+would keep if I could keep one. Bet size alone is nearly meaningless without the
+player: a pot-sized bet from someone playing 15% of hands and the same bet from someone
+playing 60% are different events, and a tree cannot combine two features into a product
+on its own, it can only split on each. Handing it the product directly is what lets the
+model learn style-relative aggression instead of absolute aggression.
 
-### Q1: "Why did you use XGBoost instead of a Deep Learning approach like a Transformer?"
-**Answer:** "Two main reasons: **Data Type** and **Interpretability**. Poker features are heterogeneous—you have continuous variables (bet sizes), discrete variables (street), and historical ratios (VPIP). Tree-based models like XGBoost handle these different scales natively without needing complex normalization. Secondly, in a high-stakes application like poker, the 'Why' matters. I used **SHAP values** to verify that the model was learning actual poker theory (like the correlation between dry boards and bluffs) rather than just noise in the data. A black-box Transformer would have been much harder to audit for 'hallucinated' strategies."
+**`range_miss`** is a heuristic proxy, and the one feature I am least sure earns its
+place:
+`vpip * (dryness + clip(dryness_delta, 0, 1)) * log1p(bet_spike) * (2 - is_monotonic)`.
+It is meant to approximate "this player's opening range probably missed this board and
+they are betting anyway". It survives because dropping it hurt, not because I can
+defend every term.
 
-### Q2: "How did you handle the fact that players have different styles? Doesn't a 'Maniac' bluff more than a 'Nit'?"
-**Answer:** "I solved this through **Feature Interaction**. I didn't just give the model the `bet_size`; I gave it the interaction term `tightness_bet_interaction`, which is `(1 - VPIP) * bet_size`. This mathematically anchors the bet to the player's profile. A 100bb bet from a 15% VPIP player (a Nit) is weighted differently by the decision trees than the same bet from a 60% VPIP player. The model essentially learns 'Style-Relative Aggression' rather than 'Absolute Aggression'."
+**`is_monotonic`** flags whether aggression is still increasing (`rel_bet_size >=
+prev * 0.9`). Small, small, overbet is a different story from small, medium, large.
 
-### Q3: "Explain your PR-Curve Calibration. Why is precision more important than recall here?"
-**Answer:** "In a live poker advisor, a **False Positive** (calling a bluff that was actually a strong hand) is much more expensive than a **False Negative** (folding when the opponent was actually bluffing). If the AI tells a user 'He's bluffing!' and it's wrong, the user loses their entire stack. Therefore, I optimized for **Precision at a fixed Recall**. I moved the decision threshold up until I hit >90% precision on the River. I'd rather the AI stay silent on 50% of bluffs but be 93% certain on the ones it *does* flag."
+## Training
 
-### Q4: "You mentioned 615,000 showdown records. How did you ensure this data wasn't biased? (e.g., only bad players go to showdown)"
-**Answer:** "That's a classic **Selection Bias** problem in poker data. To mitigate this, I used **Sample Weighting**. I weighted showdown records from high-stakes, professional datasets (like the Pluribus and ACPC bots) more heavily than recreational HandHQ data. This taught the model what 'High-Level' bluffs look like, rather than just learning from the mistakes of amateurs who over-call."
+XGBoost, 1000 trees, learning rate 0.05, depth 6, 0.8 subsample and column sample,
+`hist` tree method.
 
-### Q5: "How do you handle 'Cold Starts' for players the system has never seen before?"
-**Answer:** "We use **Bayesian Priors**. If a player has 0 hands, we assign them the 'Table Average' stats. As we observe their first 5-10 hands, we use a weighted average to 'drift' their stats toward their observed behavior. For example, if they raise their first 3 hands, their PFR (Pre-Flop Raise) stat aggressively climbs toward a 'Maniac' profile until more data stabilizes the mean. This ensures the ML model always has a valid input vector."
+The choice of XGBoost over a sequence model was not about accuracy. These features are
+heterogeneous: chip amounts, a street index, ratios bounded at 1, an unbounded
+aggression profile. Trees split on each feature independently and do not care about
+scale, so there is no normalisation layer to get wrong. And the model's output has to
+be arguable in a UI that tells someone to put money in, which means being able to read
+gain by feature and check that the top of the list is poker rather than an artifact.
+`train_showdown_model.py` logs feature importance for exactly that reason.
 
-### Q6: "What was the most surprising feature discovery during SHAP analysis?"
-**Answer:** "The power of **`dryness_delta`**. I originally thought raw board dryness was the key. But the model showed that a *change* in dryness (e.g., a dry Flop becoming a wet Turn) was a massive predictor. If a player was aggressive on a dry flop but suddenly stopped on a wet turn, the model correctly identified that they likely had a 'protection' hand that is now scared. Conversely, if they *increased* aggression when the board got drier, it signaled a high-frequency bluffing opportunity."
+**The split is grouped by player, not by row.** 80% of unique `player_id` values go to
+train, the rest to test, so no player appears on both sides. This is the detail that
+makes the numbers mean anything. A random row split leaks: the same opponent's VPIP,
+PFR and betting habits show up in training and test, the model partly memorises
+individuals, and precision comes back inflated. Splitting by player forces it to
+generalise to opponents it has never seen, which is the only case that matters live.
 
----
+`GroupKFold` is imported in that file and never used. The player split above is done by
+hand instead, and the import is left over.
 
-## 11. Mathematical Feature Deep-Dive: Board Dryness
-A "Dry" board is one where few cards can work together to make a straight or flush.
-*   **The Algorithm:** I calculated the pairwise 'connectedness' of all board cards.
-    *   *Straight Draw Score:* Number of rank-gaps between cards (e.g., 7-8 is 0 gaps, 7-9 is 1 gap).
-    *   *Flush Draw Score:* Max frequency of a single suit.
-*   **Normalization:** I mapped these to a 0.0 (Extremely Wet) to 1.0 (Extremely Dry) scale.
-*   **The Bluff Signal:** High Dryness + High Bet Size = **Narrative Mismatch**. There are very few strong "value hands" that make sense on a 7-2-2 board, so a massive overbet is statistically likely to be air.
+## Calibration
 
----
+The raw probability is not the product. Precision is.
 
-## 12. Model Explainability (SHAP & LIME)
-I didn't just trust the `bluff_probability`. I integrated **SHAP (SHapley Additive exPlanations)** to see which features pushed a specific prediction higher.
-*   **In Practice:** For a 90% bluff prediction, SHAP might show:
-    *   `+0.35` from `board_dryness`
-    *   `+0.25` from `player_vpip` (being very low)
-    *   `-0.10` from `bet_amount` (bet was actually quite small)
-*   **Result:** This allowed the UI to display a "Reasoning" tooltip: *"High bluff probability due to dry board texture and opponent's historically tight profile."*
+A false positive here means the tool said "he is bluffing", the user called, and the
+opponent had it. That costs a stack. A false negative means the tool stayed quiet and
+the user folded to a bluff, which costs the pot. The first is several times more
+expensive than the second, so recall is the thing to spend.
 
----
+So training sweeps the precision-recall curve for a target precision of 0.70 and takes
+the lowest threshold that still clears it, which is the most recall available at that
+precision. Measured on a held-out 123,000 showdown rows:
 
-## 13. Adversarial Analysis: Handling Deception (Sandbagging)
-**Challenge:** What if a player "Sandbags" (checks with a very strong hand to trick the AI)?
-*   **The "Anti-Trapping" Logic:** I engineered a `passive_narrative` feature. If a player checks/calls on two streets and then suddenly bets huge on the river, the model looks at the **Equivalence Class** of the board.
-*   **Decision:** If the board "completed" a draw (e.g., a 3rd heart came), the model correctly identifies this as "Value" rather than a "Bluff." It effectively detects when a player is "slow-playing" a monster hand by comparing their action to the **Board Change Probability**.
+| Metric | Value | What it means here |
+| --- | --- | --- |
+| River precision | 93.2% | Of river bets flagged as bluffs, 93% were |
+| Turn precision | 71.1% | One street less board information, and it shows |
+| ROC AUC | 0.750 | Ranks bluffs above value bets across all thresholds |
+| PR AUC | 0.620 | The honest number for a rare positive class |
+| Log loss | 0.312 | Probabilities are calibrated, not just ordered |
+| Inference latency | ~12 ms | Fast enough to answer inside a hand |
 
----
+Recall is roughly 50%. The detector says nothing about half of all bluffs. That is the
+trade, made deliberately.
 
-## 14. Production Safeguards & CI/CD for ML
-To ensure the model doesn't "degrade" in production:
-1.  **Drift Detection:** I wrote a cron job that compares the weekly distribution of predicted bluff probabilities against the training distribution. If the mean shifts by >10% (indicating a change in player meta), it triggers a retrain alert.
-2.  **Circuit Breaker:** If the model's confidence is <0.4, the API returns a `STAY_SILENT` status. It is better to give no advice than bad advice.
-3.  **Unit Tests for Logic:** I have 50+ "Golden Hands" (hands where a bluff is 100% certain). Every time I update the model, it must predict these correctly or the build fails.
+## From probability to advice
 
----
+![Inference and decision flow](../ml_model_architecture.png)
 
-## 15. The Senior Engineer's Reflection
-If I were to start over, I would focus even more on **Feature Selection**. Out of 50 features I engineered, only about 12 truly drove 90% of the accuracy. In ML, more data is good, but more *noisy* features can lead to overfitting. My biggest takeaway was that **Domain Expertise (Poker Theory)** is just as important as the **Algorithm (XGBoost)**. You can't build a great model for a game you don't deeply understand.
+The model's output is one input to the recommendation, not the recommendation.
+[`smart_advisor.py`](../packages/ai/smart_advisor.py) does the rest:
+
+**Shrink toward a baseline when the sample is thin.** With no history on an opponent,
+the bluff detector's opinion of them is built from default VPIP and PFR, so it is not
+worth much. The advisor blends it toward a 15% baseline bluff frequency in proportion
+to how much data exists:
+
+```
+weight = min(1.0, hands_observed / 50)
+p_bluff = (model_p * weight) + (0.15 * (1 - weight))
+```
+
+At zero hands the model is ignored entirely. At 50 it is trusted fully. Nothing in the
+UI ever shows a confident read built on three hands.
+
+**Adjust for a shift.** If the session tracker sees a player's aggression moving off
+their own baseline, `p_bluff` is scaled by 1.2 or 0.8. Tilt is real and lifetime stats
+are slow to reflect it.
+
+**Fold the bluff read into equity, then compare against the price.** A call that wins
+whenever the opponent was bluffing has a higher effective win probability than raw hand
+equity:
+
+```
+p_win_adjusted = (p_win * (1 - p_bluff)) + (0.98 * p_bluff)
+```
+
+[`move_recommender.py`](../packages/ai/move_recommender.py) then compares that against
+pot odds (`call / (pot + call)`): raise above 75% adjusted equity, call when EV is
+positive and equity beats the price, otherwise fold. This is where a bluff read earns
+its keep, by moving a marginal fold into a call, and it is also why precision was the
+metric to optimise. A bad read does not shade the advice, it inverts it.
+
+## Limitations
+
+- **The shipped model was trained before a parser bug was found, and predates the
+  fix.** `PHHParser` read pokerkit's `state.actor_index` to decide who made each
+  bet. pokerkit pairs an action with the state *after* it is applied, so that field
+  names whoever acts next, and every bet was credited to the following player.
+  Because hole cards are joined back on `player_id`, each bet also inherited the
+  wrong player's cards. On the hand in `tests/unit/test_phh_parser.py`, four barrels
+  from a player holding 6d5h on JcTs2dAsQs were recorded against the player holding
+  top pair, which inverts the label rather than blurring it. The same misreading
+  made `pot_before` count only chips already gathered, ignoring bets still in front
+  of players, so `rel_bet_size` and `spr` were wrong on any street with outstanding
+  action. Both are fixed and pinned by tests. The `.joblib` in
+  `packages/ai/models/` was fit on the old output, so the metrics below describe a
+  model trained on mislabeled data and it needs a full retrain on the corpus, which
+  I do not currently have the disk to redo.
+- **The calibrated threshold is computed and then thrown away.** Training finds the
+  threshold that hits 70% precision and logs it. Nothing persists it, and both
+  inference paths hardcode a flat `0.4` on every street. The per-street precision
+  numbers in `inference_api.py`'s `precision_map` are a hardcoded record of one
+  calibration run, not something derived at load time. Wiring the threshold into the
+  saved artifact is the first thing I would fix.
+- **The threshold is not per-street, though it should be.** River and turn precision
+  differ by 22 points at the same cutoff, which is exactly the case for a per-street
+  threshold. There isn't one.
+- **Feature importance is XGBoost gain, not SHAP.** Gain tells you which features the
+  trees split on profitably overall. It does not explain an individual prediction, so
+  the reasoning shown in the UI is written from the features, not derived from the
+  model's own attribution for that row.
+- **Heads-up only in practice.** Features like `range_miss` assume one opponent's range
+  against one board. Multi-way pots fall back to the simplified heuristic.
+- **Showdown-only labels carry the selection bias described above.** Successful bluffs
+  are invisible to the training set by definition.
+- **No timing data.** How long someone takes to act is one of the strongest tells in
+  online poker and none of these datasets record it, so none of it is here.
+- **Nothing detects model drift.** If the population's betting tendencies move, the
+  model quietly gets worse and there is no monitoring that would say so.

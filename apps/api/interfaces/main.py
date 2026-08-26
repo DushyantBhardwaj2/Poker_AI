@@ -7,21 +7,22 @@ from apps.api.interfaces.stats_controller import router as stats_router
 from apps.api.infrastructure.logger import setup_logging, get_logger
 from packages.domain.database import Base, engine, SessionLocal
 from sqlalchemy import text
+from contextlib import asynccontextmanager
 import os
 
 # Initialize structured logging
 setup_logging()
 logger = get_logger(__name__)
 
-app = FastAPI(title="PokerSense AI API", version="1.0.0")
 
-# Add Correlation ID Middleware
-app.add_middleware(CorrelationIdMiddleware)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Schema setup on boot, replacing the deprecated @app.on_event("startup").
 
-@app.on_event("startup")
-def on_startup():
+    Everything before the yield runs once at startup. There is no shutdown half:
+    SQLAlchemy's pool closes itself when the process exits.
+    """
     logger.info(f"Starting PokerSense API in {os.getenv('ENVIRONMENT', 'production')} mode")
-    # Create tables
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables verified/created successfully")
@@ -30,6 +31,14 @@ def on_startup():
 
     # Run migrations for missing columns
     _run_column_migrations()
+
+    yield
+
+
+app = FastAPI(title="PokerSense AI API", version="1.0.0", lifespan=lifespan)
+
+# Add Correlation ID Middleware
+app.add_middleware(CorrelationIdMiddleware)
 
 
 def _run_column_migrations():
@@ -112,7 +121,7 @@ if allow_all:
     if environment == "production":
         logger.error("SECURITY: Wildcard CORS origin '*' is not allowed in production. Refusing to start.")
         raise RuntimeError("CORS misconfiguration: wildcard origin '*' rejected in production environment.")
-    logger.warning("SECURITY: CORS configured with wildcard origin '*' — only use for development.")
+    logger.warning("SECURITY: CORS configured with wildcard origin '*'. Only use for development.")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

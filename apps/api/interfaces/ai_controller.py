@@ -3,7 +3,7 @@ import time
 from fastapi import APIRouter, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from packages.domain.models import Card, GameState, ActionRecord
 from packages.ai.win_probability import WinProbabilityCalculator
@@ -40,8 +40,15 @@ def get_bluff_detector():
 class WinProbRequest(BaseModel):
     hole_cards: List[Card]
     community_cards: List[Card] = []
-    num_opponents: int
-    num_simulations: int = 1000
+    # Bounded because /win-probability needs no token and each rollout costs about
+    # 0.25ms, so an unbounded count is a free way to occupy the container. The
+    # limits mirror WinProbabilityCalculator's, which raises on the same values;
+    # declaring them here makes it a 422 naming the field instead of a 400 with a
+    # stringified exception in it.
+    num_opponents: int = Field(ge=1, le=WinProbabilityCalculator.MAX_OPPONENTS)
+    num_simulations: int = Field(
+        default=1000, ge=1, le=WinProbabilityCalculator.MAX_SIMULATIONS
+    )
 
 class MoveRecRequest(BaseModel):
     win_probability: float
@@ -63,7 +70,9 @@ class AnalyzeFullRequest(BaseModel):
     history: List[ActionRecord]
     opponent_name: str
     hole_cards: List[Card]
-    num_simulations: int = 1000
+    num_simulations: int = Field(
+        default=1000, ge=1, le=WinProbabilityCalculator.MAX_SIMULATIONS
+    )
 
 @router.post("/win-probability")
 async def get_win_probability(request: WinProbRequest):

@@ -375,7 +375,9 @@ export async function getWinProbability(
 }
 
 export async function getAllStats(): Promise<Record<string, OpponentProfile>> {
-  const res = await fetch(`${API_URL}/stats`, {
+  // Trailing slash is deliberate: the router registers this as @router.get("/"),
+  // so requesting /stats earns a 307 to /stats/ and pays for a second preflight.
+  const res = await fetch(`${API_URL}/stats/`, {
     method: 'GET',
     headers: await getHeaders(),
   });
@@ -482,7 +484,7 @@ export const PokerAPI = {
     }).then(handleResponse),
   
   getStats: async () =>
-    fetch(`${API_URL}/stats`, { method: 'GET', headers: await getHeaders() }).then(handleResponse)
+    fetch(`${API_URL}/stats/`, { method: 'GET', headers: await getHeaders() }).then(handleResponse)
 };
 
 // --- Phase 6: Session Analytics & Post-Game Review ---

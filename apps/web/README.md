@@ -1,43 +1,42 @@
-# Astro Starter Kit: Minimal
+# PokerSense AI frontend
 
-```sh
-npm create astro@latest -- --template minimal
+Astro 6 with React islands. See the [root README](../../README.md) for what the
+project is and how the pieces fit together.
+
+## Layout
+
+```
+src/
+├── pages/          file-based routes; theory/[id].astro renders one chapter
+├── components/     React islands (table, advisor HUD, analytics) + Astro views
+├── stores/         usePokerStore.ts: Zustand, holds live hand state
+├── lib/
+│   ├── api.ts      typed client, base-URL resolution, backend warmup
+│   └── auth.ts     Neon Auth session + token retrieval
+└── styles/
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Only the interactive parts hydrate. The theory chapters and static pages ship no
+client JavaScript, which is the reason for choosing Astro over a SPA.
 
-## 🚀 Project Structure
+`output: 'server'` with the Vercel adapter, so pages are server-rendered rather
+than prerendered.
 
-Inside of your Astro project, you'll see the following folders and files:
+## Commands
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+| Command | Action |
+| :--- | :--- |
+| `npm install` | Install dependencies |
+| `npm run dev` | Dev server on `localhost:4321`, proxying `/api` to `localhost:8000` |
+| `npm run build` | Production build |
+| `npm run preview` | Serve the build locally |
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## Configuration
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+Both are read at build time via `import.meta.env`, so they must be set in the
+Vercel project, not just at runtime.
 
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+| Variable | Purpose |
+| :--- | :--- |
+| `PUBLIC_API_URL` | Backend base URL including `/api/v1`. Omit for local dev and the Vite proxy handles it. |
+| `PUBLIC_NEON_AUTH_URL` | Neon Auth project URL, for sign-in and token issuance. |

@@ -1,68 +1,106 @@
-import os
-import sys
-import uuid
-from dotenv import load_dotenv
-from sqlalchemy.orm import sessionmaker
+"""Behaviour of StatsRepository against a real database.
 
-# Add project root to path
-sys.path.append(os.getcwd())
+The interesting property here is the cold start. A brand new opponent has no
+stats, so the profiler has nothing to say about them, and the repository seeds
+them from the average of the players already at the table instead of from a
+global default. This file asserts that; it used to print the numbers and leave
+reading them to whoever ran it.
 
-from packages.domain.database import engine, get_db
+It also used to bail out with `print("Run verify_db.py first")` and `return` when
+the admin user was missing, which pytest scores as a pass. The `admin_user`
+fixture in tests/conftest.py creates it.
+"""
+
+import pytest
+
+from packages.domain.db_models import Opponent, OpponentStats
 from packages.domain.stats_repository import StatsRepository
-from packages.domain.db_models import User, Opponent, OpponentStats
 
-def test_repository():
-    load_dotenv()
-    Session = sessionmaker(bind=engine)
-    db = Session()
-    
-    try:
-        # 1. Get our test user
-        user = db.query(User).filter(User.email == "admin@pokersense.ai").first()
-        if not user:
-            print("Error: Run verify_db.py first to create the admin user.")
-            return
-        
-        repo = StatsRepository(db)
-        
-        # 2. Test get_or_create_opponent (Cold Start)
-        print("\n--- Testing Cold Start ---")
-        import random
-        suffix = random.randint(1000, 9999)
-        player_a = f"Alpha_{suffix}"
-        player_b = f"Beta_{suffix}"
-        opp_a = repo.get_or_create_opponent(user.user_id, player_a)
-        print(f"Created/Found {player_a}: {opp_a.opponent_id}")
-        print(f"Initial Features: {opp_a.stats.dynamic_features}")
-        
-        # 3. Test update_player_stats
-        print("\n--- Testing Stats Update ---")
-        repo.update_player_stats(user.user_id, player_a, vpip_this_hand=True, pfr_this_hand=False, is_bluff=True)
-        db.refresh(opp_a.stats)
-        print(f"After 1 hand: {opp_a.stats.dynamic_features}")
-        print(f"Hands played: {opp_a.stats.hands_played}")
-        
-        # 4. Test table-averaged baseline
-        print("\n--- Testing Table Averaged Baseline ---")
-        player_b = "Player Beta"
-        # Seed player A with some high stats
-        for _ in range(9):
-             repo.update_player_stats(user.user_id, player_a, vpip_this_hand=True, pfr_this_hand=True)
-        
-        # Now create Player B, using Player A's averages
-        opp_b = repo.get_or_create_opponent(user.user_id, player_b, active_table_names=[player_a])
-        print(f"Created {player_b} with baseline from {player_a}")
-        print(f"Player B Initial Features: {opp_b.stats.dynamic_features}")
-        
-        # Player A has 100% VPIP (10/10), 90% PFR (9/10)
-        # Baseline should be ~10 hands worth of that.
-        # vpip_count should be around 10, pfr_count around 9.
-        
-        # Clean up Beta for idempotency in repeat tests if needed, 
-        # but for now we'll just leave it or use a random name.
-        
-    finally:
-        db.close()
+pytestmark = pytest.mark.integration
 
-if __name__ == "__main__":
-    test_repository()
+
+@pytest.fixture
+def repo(db):
+    return StatsRepository(db)
+
+
+def test_a_new_opponent_starts_with_no_history(repo, admin_user):
+    opponent = repo.get_or_create_opponent(admin_user.user_id, "Cold Start")
+
+    assert opponent.opponent_id is not None
+    assert opponent.stats.hands_played == 0
+    assert opponent.stats.dynamic_features["vpip_count"] == 0
+    assert opponent.stats.dynamic_features["pfr_count"] == 0
+    assert opponent.stats.reliability_score == "Low"
+
+
+def test_get_or_create_is_idempotent(repo, admin_user):
+    first = repo.get_or_create_opponent(admin_user.user_id, "Seen Twice")
+    second = repo.get_or_create_opponent(admin_user.user_id, "Seen Twice")
+
+    assert first.opponent_id == second.opponent_id
+    rows = (
+        repo.db.query(Opponent)
+        .filter(Opponent.user_id == admin_user.user_id, Opponent.player_name == "Seen Twice")
+        .count()
+    )
+    assert rows == 1
+
+
+def test_one_hand_moves_the_counters(repo, admin_user):
+    opponent = repo.get_or_create_opponent(admin_user.user_id, "Counter Check")
+    repo.update_player_stats(
+        admin_user.user_id,
+        "Counter Check",
+        vpip_this_hand=True,
+        pfr_this_hand=False,
+        is_bluff=True,
+    )
+    repo.db.refresh(opponent.stats)
+
+    assert opponent.stats.hands_played == 1
+    assert opponent.stats.dynamic_features["vpip_count"] == 1
+    assert opponent.stats.dynamic_features["pfr_count"] == 0
+    assert opponent.stats.dynamic_features["strict_bluff_showdowns"] == 1
+
+
+def test_a_new_opponent_inherits_the_table_average(repo, admin_user):
+    """A loose table makes the next unknown player a loose prior, not a default one."""
+    known = "Table Maniac"
+    repo.get_or_create_opponent(admin_user.user_id, known)
+    for _ in range(10):
+        repo.update_player_stats(
+            admin_user.user_id, known, vpip_this_hand=True, pfr_this_hand=True
+        )
+
+    seeded = repo.get_or_create_opponent(
+        admin_user.user_id, "Fresh Face", active_table_names=[known]
+    )
+    default = repo.get_or_create_opponent(admin_user.user_id, "Unseeded")
+
+    # The baseline is worth ten notional hands of the table's observed behaviour.
+    assert seeded.stats.hands_played == 10
+    assert default.stats.hands_played == 0
+    assert (
+        seeded.stats.dynamic_features["vpip_count"]
+        > default.stats.dynamic_features["vpip_count"]
+    )
+    # Still "Low", and correctly so: reliability turns Medium at 100 hands, and a
+    # borrowed prior should not be allowed to look like a real read. The advisor
+    # weights the same way, at hands/50.
+    assert seeded.stats.reliability_score == "Low"
+
+
+def test_stats_are_scoped_to_the_user(repo, admin_user, db):
+    """Two users tracking a player of the same name must not share a row."""
+    from packages.domain.db_models import User
+
+    other = User(email="second-operator@example.com")
+    db.add(other)
+    db.commit()
+
+    mine = repo.get_or_create_opponent(admin_user.user_id, "Shared Name")
+    theirs = repo.get_or_create_opponent(other.user_id, "Shared Name")
+
+    assert mine.opponent_id != theirs.opponent_id
+    assert db.query(OpponentStats).filter(OpponentStats.opponent_id == mine.opponent_id).count() == 1

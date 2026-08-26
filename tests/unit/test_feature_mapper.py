@@ -134,7 +134,7 @@ class TestFeatureMapper:
             state, history, {"vpip": 0.25, "pfr": 0.18},
             opponent_name="Villain"
         )
-        # Hero's RAISE is excluded — only CALL remains, which is fallback
+        # Hero's RAISE is excluded; only CALL remains, which is fallback
         assert live.bet_amount == 200 / 20, f"Expected {200/20}, got {live.bet_amount}"
 
     def test_opponent_name_multiway_selects_correct_player(self):
@@ -156,7 +156,7 @@ class TestFeatureMapper:
             state, history, {"vpip": 0.25, "pfr": 0.18},
             opponent_name="VillainB"
         )
-        # VillainA's RAISE is excluded — only VillainB's CALL is in candidates
+        # VillainA's RAISE is excluded; only VillainB's CALL is in candidates
         assert live.bet_amount == 400 / 20, f"Expected {400/20}, got {live.bet_amount}"
 
     def test_call_fallback_only_for_target_opponent(self):

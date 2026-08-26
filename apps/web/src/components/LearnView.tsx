@@ -7,7 +7,7 @@ export const LearnView: React.FC = () => {
       chapter: 1,
       title: "Beyond Beginning Poker",
       icon: Combine,
-      theory: "At its core, poker is a game of skill—specifically, the skill of minimizing losses on bad hands and maximizing profits on good hands. You are constantly at war with luck.",
+      theory: "At its core, poker is a game of skill, specifically the skill of minimizing losses on bad hands and maximizing profits on good hands. You are constantly at war with luck.",
       key_point: "The goal is not to win individual pots, but to make money by consistently making decisions with positive mathematical expectation.",
       href: "/theory/chapter-1"
     },

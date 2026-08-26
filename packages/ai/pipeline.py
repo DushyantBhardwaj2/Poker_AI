@@ -524,7 +524,7 @@ def map_to_semantics(
     else:
         risk_level = "Medium Variance"
 
-    # Strategic Theme — includes bluff probability when sample is sufficient
+    # Strategic Theme: includes bluff probability when sample is sufficient
     has_bluff_data = sample_size >= 100  # Section 26.1 hard gate
     if action in [ActionType.RAISE, ActionType.ALL_IN]:
         if equity >= 0.7:

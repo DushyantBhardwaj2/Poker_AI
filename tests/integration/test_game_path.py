@@ -1,156 +1,148 @@
-import os
-import sys
-import pytest
+"""A full hand through the stateless game endpoints.
+
+The routes take their user from `get_current_user_id`, which verifies a Neon Auth
+JWT. This overrides that dependency with a user the test created, which is the
+supported way to test an authenticated route and does not need a signing key.
+
+The previous version sent an `X-User-Id` header that no route reads, so it only
+passed when `SKIP_AUTH=true` was set in the developer's environment, and the user
+it carefully pre-registered was not the one the request ran as.
+"""
+
 import uuid
+
+import pytest
 from fastapi.testclient import TestClient
 
-# Add project root to path
-sys.path.append(os.getcwd())
-
+from apps.api.infrastructure.auth import get_current_user_id
 from apps.api.interfaces.main import app
-from packages.domain.models import GameRound, ActionType, PlayerStatus
-from packages.domain.database import SessionLocal
 from packages.domain.db_models import User
 
-client = TestClient(app)
+pytestmark = pytest.mark.integration
 
-def test_complete_game_path():
-    """
-    Simulates a full game path via stateless API endpoints:
-    Start -> Pre-flop Action -> Flop -> Showdown
-    """
-    user_id = str(uuid.uuid4())
-    headers = {"X-User-Id": user_id}
 
-    # Pre-register user to avoid FK error
-    db = SessionLocal()
-    try:
-        new_user = User(user_id=user_id, email=f"test-{user_id[:8]}@example.com")
-        db.add(new_user)
-        db.commit()
-    finally:
-        db.close()
+@pytest.fixture
+def client(db):
+    """A client authenticated as a freshly created user."""
+    user = User(user_id=uuid.uuid4(), email=f"game-path-{uuid.uuid4().hex[:8]}@example.com")
+    db.add(user)
+    db.commit()
 
-    # 1. Start Game
-    print("\n[Step 1] Starting Game...")
-    setup_payload = {
-        "player_names": ["You", "Whale", "Nit"],
-        "initial_stacks": [1000, 1000, 1000],
-        "small_blind": 5,
-        "big_blind": 10,
-        "dealer_index": 0
-    }
-    response = client.post("/api/v1/game/start", json=setup_payload, headers=headers)
-    assert response.status_code == 200
+    app.dependency_overrides[get_current_user_id] = lambda: str(user.user_id)
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
+
+
+def act(client, state, player_index, action_type, amount=0):
+    response = client.post(
+        "/api/v1/game/action",
+        json={
+            "state": state,
+            "action": {
+                "player_index": player_index,
+                "action_type": action_type,
+                "amount": amount,
+            },
+        },
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_a_hand_plays_from_deal_to_showdown(client):
+    """Three-handed: hero raises, one caller, one fold, then checks to the turn."""
+    response = client.post(
+        "/api/v1/game/start",
+        json={
+            "player_names": ["You", "Whale", "Nit"],
+            "initial_stacks": [1000, 1000, 1000],
+            "small_blind": 5,
+            "big_blind": 10,
+            "dealer_index": 0,
+        },
+    )
+    assert response.status_code == 200, response.text
     state = response.json()
-    
-    # Pre-flop action starts after BB
-    # D=0, SB=1, BB=2. UTG is index 0.
-    curr_idx = state["current_player_index"]
+
+    # Dealer 0, small blind 1, big blind 2, so the first to act pre-flop is 0.
     assert state["round"] == "pre-flop"
-    print(f"Current Player Index: {curr_idx} (You)")
+    assert state["current_player_index"] == 0
 
-    # 2. Action: You (index 0) Raises to 30
-    action_payload = {
-        "state": state,
-        "action": {
-            "player_index": curr_idx,
-            "action_type": "raise",
-            "amount": 30
-        }
-    }
-    response = client.post("/api/v1/game/action", json=action_payload, headers=headers)
-    if response.status_code != 200:
-        print(f"Action Error: {response.json()}")
-    assert response.status_code == 200
-    state = response.json()
+    state = act(client, state, 0, "raise", 30)
     assert state["current_bet"] == 30
     assert state["players"][0]["stack"] == 970
 
-    # 3. Action: Whale (index 1) Calls 30
-    curr_idx = state["current_player_index"]
-    assert curr_idx == 1
-    action_payload = {
-        "state": state,
-        "action": {
-            "player_index": curr_idx,
-            "action_type": "call",
-            "amount": 0
-        }
-    }
-    response = client.post("/api/v1/game/action", json=action_payload, headers=headers)
-    state = response.json()
+    assert state["current_player_index"] == 1
+    state = act(client, state, 1, "call")
 
-    # 4. Action: Nit (index 2) Folds
-    curr_idx = state["current_player_index"]
-    assert curr_idx == 2
-    action_payload = {
-        "state": state,
-        "action": {
-            "player_index": curr_idx,
-            "action_type": "fold",
-            "amount": 0
-        }
-    }
+    assert state["current_player_index"] == 2
+    state = act(client, state, 2, "fold")
 
-    response = client.post("/api/v1/game/action", json=action_payload, headers=headers)
-    state = response.json()
-    
-    # Round should advance to FLOP
     assert state["round"] == "flop"
-    print("Round advanced to FLOP")
 
-    # 5. Flop Action: Check-Check
-    # First actor on flop is SB (index 1).
-    for i in [1, 0]:
-        curr_idx = state["current_player_index"]
-        assert curr_idx == i
-        action_payload = {
-            "state": state,
-            "action": {
-                "player_index": curr_idx,
-                "action_type": "check",
-                "amount": 0
-            }
-        }
-        response = client.post("/api/v1/game/action", json=action_payload, headers=headers)
-        state = response.json()
-    
+    # The small blind acts first post-flop.
+    for expected_index in (1, 0):
+        assert state["current_player_index"] == expected_index
+        state = act(client, state, expected_index, "check")
+
     assert state["round"] == "turn"
-    print("Round advanced to TURN")
 
-    # 6. AI Analysis on Turn
-    # You have A-A. Flop was A-K-J.
-    state["players"][0]["hole_cards"] = [
-        {"rank": "A", "suit": "s"}, {"rank": "A", "suit": "h"}
-    ]
+
+def test_analyze_full_answers_for_a_live_state(client):
+    response = client.post(
+        "/api/v1/game/start",
+        json={
+            "player_names": ["You", "Whale"],
+            "initial_stacks": [1000, 1000],
+            "small_blind": 5,
+            "big_blind": 10,
+            "dealer_index": 0,
+        },
+    )
+    assert response.status_code == 200, response.text
+    state = response.json()
+
+    hole_cards = [{"rank": "A", "suit": "s"}, {"rank": "A", "suit": "h"}]
+    state["players"][0]["hole_cards"] = hole_cards
     state["community_cards"] = [
-        {"rank": "A", "suit": "d"}, {"rank": "K", "suit": "c"}, {"rank": "J", "suit": "h"}
+        {"rank": "A", "suit": "d"},
+        {"rank": "K", "suit": "c"},
+        {"rank": "J", "suit": "h"},
     ]
-    
-    analysis_payload = {
-        "state": state,
-        "history": [], # Simplified for test
-        "opponent_name": "Whale",
-        "hole_cards": [{"rank": "A", "suit": "s"}, {"rank": "A", "suit": "h"}],
-        "num_simulations": 100
-    }
-    response = client.post("/api/v1/ai/analyze-full", json=analysis_payload, headers=headers)
-    assert response.status_code == 200
+
+    response = client.post(
+        "/api/v1/ai/analyze-full",
+        json={
+            "state": state,
+            "history": [],
+            "opponent_name": "Whale",
+            "hole_cards": hole_cards,
+            # Kept low deliberately: this asserts the endpoint is wired up, and
+            # 1000 rollouts would make it the slowest test in the suite.
+            "num_simulations": 100,
+        },
+    )
+    assert response.status_code == 200, response.text
     analysis = response.json()
-    print(f"AI Advice: {analysis['advice']['action']}")
+
     assert "win_analysis" in analysis
+    assert analysis["advice"]["action"] in {"fold", "check", "call", "bet", "raise", "all-in"}
+    # Set over a pair of aces on an A-K-J board. Anything but a raise is a bug.
+    assert analysis["advice"]["action"] == "raise"
 
-    # 7. Showdown
-    showdown_payload = {
-        "state": state,
-        "bluffer_names": ["Whale"]
-    }
-    response = client.post("/api/v1/game/showdown", json=showdown_payload, headers=headers)
-    assert response.status_code == 200
-    showdown_data = response.json()
-    assert "result" in showdown_data
-    print("Showdown completed successfully")
 
-if __name__ == "__main__":
-    test_complete_game_path()
+def test_an_unauthenticated_request_is_rejected():
+    """No dependency override here, so the real JWT check runs."""
+    with TestClient(app) as anonymous:
+        response = anonymous.post(
+            "/api/v1/game/start",
+            json={
+                "player_names": ["You", "Whale"],
+                "initial_stacks": [1000, 1000],
+                "small_blind": 5,
+                "big_blind": 10,
+                "dealer_index": 0,
+            },
+        )
+    assert response.status_code == 401

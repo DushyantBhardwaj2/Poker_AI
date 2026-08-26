@@ -11,22 +11,37 @@ from src.utils.config_loader import get_data_path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+OUTPUT_DIR = 'parsed_output'
+
 def validate_labels():
+    """Score the heuristic soft label against showdown ground truth.
+
+    This is the measurement behind the labeling pivot described in
+    MAKING_OF_ML_MODULE.md: how much the heuristic agrees with the cards that
+    were actually turned over.
+
+    It used to read the 'labels_v2' path, which no code can produce any more,
+    because the labeler that wrote it was deleted along with the rest of the v2
+    branch. Both label columns exist in the v3 dataset.
+    """
     logger.info("Loading labeled data...")
-    labels_v2_path = get_data_path('labels_v2')
-    if not labels_v2_path or not os.path.exists(labels_v2_path):
-        logger.error(f"Labeled data not found at {labels_v2_path}")
+    labels_path = get_data_path('labels_v3')
+    if not labels_path or not os.path.exists(labels_path):
+        logger.error(f"Labeled data not found at {labels_path}")
         return
-        
-    df = pd.read_parquet(labels_v2_path)
-    
+
+    df = pd.read_parquet(labels_path)
+
     # Filter for showdown hands where we have a true label
     showdown_df = df[df['true_label'].notna()].copy()
     logger.info(f"Validating against {len(showdown_df)} showdown records.")
-    
+
     if showdown_df.empty:
         logger.error("No showdown data for validation.")
         return
+
+    # Every savefig below writes here, and none of them create it.
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # To calculate metrics, we need to threshold the soft label
     # Let's test different thresholds to find the best one
@@ -59,7 +74,7 @@ def validate_labels():
     plt.title('Precision-Recall Curve (Heuristic vs Showdown Ground Truth)')
     plt.legend()
     plt.grid(True)
-    plt.savefig('parsed_output/pr_curve_heuristic.png')
+    plt.savefig(os.path.join(OUTPUT_DIR, 'pr_curve_heuristic.png'))
     
     # 2. Confusion Matrix at best threshold
     y_pred_best = (showdown_df['soft_label'] > best_t).astype(int)
@@ -70,10 +85,10 @@ def validate_labels():
     plt.xlabel('Predicted (Heuristic)')
     plt.ylabel('Actual (Showdown)')
     plt.title(f'Confusion Matrix at Threshold {best_t:.2f}')
-    plt.savefig('parsed_output/confusion_matrix_heuristic.png')
+    plt.savefig(os.path.join(OUTPUT_DIR, 'confusion_matrix_heuristic.png'))
     
     # Save Report
-    with open('parsed_output/calibration_report.txt', 'w') as f:
+    with open(os.path.join(OUTPUT_DIR, 'calibration_report.txt'), 'w') as f:
         f.write("PHASE 4: CALIBRATION REPORT\n")
         f.write(f"Validation records: {len(showdown_df)}\n")
         f.write(f"Best Threshold: {best_t}\n")
@@ -82,7 +97,7 @@ def validate_labels():
         f.write(f"F1-Score: {results_df.loc[results_df['threshold'] == best_t, 'f1'].values[0]:.3f}\n")
         f.write(f"PR-AUC: {pr_auc:.3f}\n")
 
-    logger.info("Calibration complete. Results saved to parsed_output/")
+    logger.info(f"Calibration complete. Results saved to {OUTPUT_DIR}/")
 
 if __name__ == "__main__":
     validate_labels()
