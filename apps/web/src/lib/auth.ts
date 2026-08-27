@@ -26,7 +26,7 @@ function getSafeAuthUrl(): string {
         return 'https://placeholder-auth.neon.tech';
       }
     }
-    return parsed.origin;
+    return parsed.origin + (parsed.pathname === '/' ? '' : parsed.pathname);
   } catch {
     return 'https://placeholder-auth.neon.tech';
   }
