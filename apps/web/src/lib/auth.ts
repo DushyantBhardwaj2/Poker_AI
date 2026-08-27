@@ -1,9 +1,43 @@
 import { createAuthClient } from "@neondatabase/auth";
 
-// PUBLIC_NEON_AUTH_URL should be set in .env or provider environment variables
-const authUrl = import.meta.env.PUBLIC_NEON_AUTH_URL || import.meta.env.VITE_NEON_AUTH_URL || "";
+function getSafeAuthUrl(): string {
+  let raw = (import.meta.env.PUBLIC_NEON_AUTH_URL || import.meta.env.VITE_NEON_AUTH_URL || '').trim();
+  if (!raw) return 'https://placeholder-auth.neon.tech';
 
-export const isAuthEnabled = Boolean(authUrl && authUrl.startsWith('http'));
+  // Guard against accidentally setting DATABASE_URL into PUBLIC_NEON_AUTH_URL
+  if (raw.startsWith('postgresql://') || raw.startsWith('postgres://')) {
+    if (typeof window !== 'undefined') {
+      console.error(
+        "❌ PokerSense Auth Error: PUBLIC_NEON_AUTH_URL is configured with a PostgreSQL connection string (postgresql://...) instead of your Neon Auth URL (https://<auth-subdomain>.neon.tech). Please update this in your Vercel Environment Variables."
+      );
+    }
+    return 'https://placeholder-auth.neon.tech';
+  }
+
+  if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+    raw = `https://${raw}`;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    // Disallow single-word invalid hostnames like 'postgresql' or 'postgres'
+    if (parsed.hostname === 'postgresql' || parsed.hostname === 'postgres' || !parsed.hostname.includes('.')) {
+      if (parsed.hostname !== 'localhost') {
+        return 'https://placeholder-auth.neon.tech';
+      }
+    }
+    return parsed.origin;
+  } catch {
+    return 'https://placeholder-auth.neon.tech';
+  }
+}
+
+const authUrl = getSafeAuthUrl();
+
+export const isAuthEnabled = Boolean(
+  (import.meta.env.PUBLIC_NEON_AUTH_URL || import.meta.env.VITE_NEON_AUTH_URL) &&
+  authUrl !== 'https://placeholder-auth.neon.tech'
+);
 
 if (!isAuthEnabled) {
   if (typeof window !== 'undefined') {
@@ -13,7 +47,7 @@ if (!isAuthEnabled) {
 }
 
 // Better-Auth based client
-export const authClient = createAuthClient(authUrl || "https://placeholder-auth.neon.tech");
+export const authClient = createAuthClient(authUrl);
 
 /**
  * Helper to get the current session token for API calls

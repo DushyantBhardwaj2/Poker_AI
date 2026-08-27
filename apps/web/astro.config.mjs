@@ -4,7 +4,8 @@ import vercel from '@astrojs/vercel';
 
 // https://astro.build/config
 export default defineConfig({
-  output: 'server',
+  site: 'https://poker-ai-black.vercel.app',
+  output: 'static',
   adapter: vercel({
     webAnalytics: {
       enabled: false, // Set to true only after enabling in Vercel Dashboard

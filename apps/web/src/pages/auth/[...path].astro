@@ -3,6 +3,16 @@ import MainLayout from '../../layouts/MainLayout.astro';
 import { LoginForm } from '../../components/auth/LoginForm';
 import { SignupForm } from '../../components/auth/SignupForm';
 
+export async function getStaticPaths() {
+  return [
+    { params: { path: 'login' } },
+    { params: { path: 'sign-in' } },
+    { params: { path: 'signup' } },
+    { params: { path: 'sign-up' } },
+    { params: { path: undefined } },
+  ];
+}
+
 const { path } = Astro.params;
 const isSignup = path?.includes('signup') || path?.includes('sign-up');
 ---

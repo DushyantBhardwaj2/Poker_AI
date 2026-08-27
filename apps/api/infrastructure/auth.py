@@ -32,7 +32,13 @@ def _require_auth_base() -> str:
             status_code=503,
             detail="Authentication is not configured on this server (NEON_AUTH_URL is unset).",
         )
-    return NEON_AUTH_URL.rstrip("/")
+    url = NEON_AUTH_URL.strip().rstrip("/")
+    if url.startswith("postgres://") or url.startswith("postgresql://"):
+        raise HTTPException(
+            status_code=500,
+            detail="NEON_AUTH_URL is misconfigured with a PostgreSQL connection string instead of the Neon Auth URL (https://<auth-domain>.neon.tech).",
+        )
+    return url
 
 
 def _jwks_url() -> str:
